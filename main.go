@@ -9,7 +9,7 @@ import (
 )
 
 func pcapCommand(c *cli.Context) error {
-	if c.NArg()	< 1 {
+	if c.NArg() < 1 {
 		return cli.NewExitError("ERROR: must provide at least one filename", 1)
 	}
 
@@ -52,35 +52,35 @@ func main() {
 
 	app.Authors = []cli.Author{
 		{
-			Name: "Chaz Lever",
+			Name:  "Chaz Lever",
 			Email: "chazlever@gatech.edu",
 		},
 	}
 
 	app.Commands = []cli.Command{
 		{
-			Name: "pcap",
-			Usage: "read packets from a PCAP file",
-			Action: pcapCommand,
+			Name:      "pcap",
+			Usage:     "read packets from a PCAP file",
+			Action:    pcapCommand,
 			ArgsUsage: "[file...]",
 		},
 		{
-			Name: "live",
-			Usage: "read packets from a live interface",
-			Action: liveCommand,
+			Name:      "live",
+			Usage:     "read packets from a live interface",
+			Action:    liveCommand,
 			ArgsUsage: "[interface]",
-			Flags: []cli.Flag {
+			Flags: []cli.Flag{
 				cli.IntFlag{
-					Name: "snaplen",
+					Name:  "snaplen",
 					Usage: "set snapshot length for PCAP collection",
 					Value: 4096,
 				},
 				cli.BoolFlag{
-					Name: "promiscuous",
+					Name:  "promiscuous",
 					Usage: "set promiscuous mode for traffic collection",
 				},
 				cli.IntFlag{
-					Name: "timeout",
+					Name:  "timeout",
 					Usage: "set timeout value for traffic collection",
 					Value: 30,
 				},
@@ -90,15 +90,15 @@ func main() {
 
 	app.Flags = []cli.Flag{
 		cli.BoolFlag{
-			Name: "no-tcp",
+			Name:  "no-tcp",
 			Usage: "do not attempt to parse TCP packets",
 		},
 		cli.BoolFlag{
-			Name: "no-ecs",
+			Name:  "no-ecs",
 			Usage: "do not attempt to parse ECS information",
 		},
 		cli.BoolFlag{
-			Name: "questions",
+			Name:  "questions",
 			Usage: "parse questions in addition to responses",
 		},
 	}
