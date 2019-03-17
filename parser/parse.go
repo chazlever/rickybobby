@@ -18,15 +18,15 @@ const (
 )
 
 var (
-	NoParseTcp = true
-	NoParseEcs = true
+	NoParseTcp       = true
+	NoParseEcs       = true
 	DoParseQuestions = false
 )
 
 func ParseFile(fname string) {
 	var (
 		handle *pcap.Handle
-		err error
+		err    error
 	)
 
 	if "-" == fname {
@@ -84,7 +84,7 @@ func ParseDns(handle *pcap.Handle) {
 	packetSource := gopacket.NewPacketSource(handle, handle.LinkType())
 	packetSource.NoCopy = true
 
-	PACKETLOOP:
+PACKETLOOP:
 	for packet := range packetSource.Packets() {
 		if err := parser.DecodeLayers(packet.Data(), &decoded); err != nil {
 			// TODO: Add logging
@@ -136,13 +136,19 @@ func ParseDns(handle *pcap.Handle) {
 		schema.Nxdomain = msg.Opcode == 3
 
 		// Parse ECS information
+		schema.EcsClient = nil
+		schema.EcsSource = nil
+		schema.EcsScope = nil
 		if opt := msg.IsEdns0(); (opt != nil) && !NoParseEcs {
 			for _, s := range opt.Option {
 				switch o := s.(type) {
 				case *dns.EDNS0_SUBNET:
-					schema.EcsClient = o.Address.String()
-					schema.EcsSource = o.SourceNetmask
-					schema.EcsScope = o.SourceScope
+					ecsClient := o.Address.String()
+					ecsSource := o.SourceNetmask
+					ecsScope := o.SourceScope
+					schema.EcsClient = &ecsClient
+					schema.EcsSource = &ecsSource
+					schema.EcsScope = &ecsScope
 				}
 			}
 		}
