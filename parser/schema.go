@@ -35,32 +35,35 @@ type DnsSchema struct {
 	EcsScope           *uint8  `json:"ecs_scope"`
 }
 
-func (d DnsSchema) ToJson(rr dns.RR, section int) {
-	// TODO: Fix how RDATA is handled
-	// This won't always work if the RDATA has tabs in it.
-	answer := strings.Split(rr.String(), "\t")
-	rdata := answer[len(answer)-1]
-	ttl := rr.Header().Ttl
-	rname := rr.Header().Name
-	rtype := rr.Header().Rrtype
+func (d DnsSchema) ToJson(rr *dns.RR, section int) {
+	if rr != nil {
+		// TODO: Fix how RDATA is handled
+		// This won't always work if the RDATA has tabs in it.
+		answer := strings.Split((*rr).String(), "\t")
+		rdata := answer[len(answer)-1]
+		ttl := (*rr).Header().Ttl
+		rname := (*rr).Header().Name
+		rtype := (*rr).Header().Rrtype
 
-	// Fill in the rest of the parameters
-	// This will not alter the underlying DNS schema
-	d.Ttl = &ttl
-	d.Rname = &rname
-	d.Rtype = &rtype
-	d.Rdata = &rdata
-	d.Answer = section == DnsAnswer
-	d.Authority = section == DnsAuthority
-	d.Additional = section == DnsAdditional
+		// Fill in the rest of the parameters
+		// This will not alter the underlying DNS schema
+		d.Ttl = &ttl
+		d.Rname = &rname
+		d.Rtype = &rtype
+		d.Rdata = &rdata
+		d.Answer = section == DnsAnswer
+		d.Authority = section == DnsAuthority
+		d.Additional = section == DnsAdditional
 
-	// Let's print Json and ignore OPT records
-	if *d.Rtype != 41 {
-		jsonData, err := json.Marshal(d)
-		if err != nil {
-			fmt.Println(err)
+		// Ignore OPT records
+		if *d.Rtype == 41 {
+			return
 		}
-
-		fmt.Println(string(jsonData))
 	}
+
+	jsonData, err := json.Marshal(d)
+	if err != nil {
+		fmt.Println(err)
+	}
+	fmt.Println(string(jsonData))
 }

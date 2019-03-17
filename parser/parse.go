@@ -68,16 +68,17 @@ func ParseDns(handle *pcap.Handle) {
 	decoded := []gopacket.LayerType{}
 
 	// Setup BPF filter on handle
-	if NoParseTcp {
-		err := handle.SetBPFFilter("udp port 53")
-		if err != nil {
-			// TODO: Logging here
-		}
-	} else {
-		err := handle.SetBPFFilter("port 53")
-		if err != nil {
-			// TODO: Logging here
-		}
+	//var bpfFilter string
+	//if NoParseTcp {
+	//	bpfFilter = "udp port 53"
+	//} else {
+	//	// For now, we're only going to support UDP
+	//	bpfFilter = "port 53"
+	//}
+	err := handle.SetBPFFilter("udp port 53")
+	if err != nil {
+		// TODO: Logging here
+		//fmt.Fprintf(os.Stderr, "Could not set BPF filter: %v\n", err)
 	}
 
 	// Use the handle as a packet source to process all packets
@@ -153,6 +154,12 @@ PACKETLOOP:
 			}
 		}
 
+		// Reset RR information
+		schema.Ttl = nil
+		schema.Rname = nil
+		schema.Rdata = nil
+		schema.Rtype = nil
+
 		// Let's get QUESTION
 		// TODO: Throw error if there's more than one question
 		for _, qr := range msg.Question {
@@ -160,19 +167,25 @@ PACKETLOOP:
 			schema.Qtype = qr.Qtype
 		}
 
+		// Print questions if configured
+		// If we've received an NXDOMAIN without SOA make sure we print
+		if (DoParseQuestions && !schema.Response) || (schema.Nxdomain && len(msg.Ns) < 1) {
+			schema.ToJson(nil, -1)
+		}
+
 		// Let's get ANSWERS
 		for _, rr := range msg.Answer {
-			schema.ToJson(rr, DnsAnswer)
+			schema.ToJson(&rr, DnsAnswer)
 		}
 
 		// Let's get AUTHORITATIVE information
 		for _, rr := range msg.Ns {
-			schema.ToJson(rr, DnsAuthority)
+			schema.ToJson(&rr, DnsAuthority)
 		}
 
 		// Let's get ADDITIONAL information
 		for _, rr := range msg.Extra {
-			schema.ToJson(rr, DnsAdditional)
+			schema.ToJson(&rr, DnsAdditional)
 		}
 
 		// Let's check and see if we had any errors decoding any of the packets
