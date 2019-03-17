@@ -17,8 +17,24 @@ const (
 	DnsAdditional = iota
 )
 
-func ParseFile(file *os.File) {
-	handle, err := pcap.OpenOfflineFile(file)
+var (
+	NoParseTcp = true
+	NoParseEcs = true
+	DoParseQuestions = false
+)
+
+func ParseFile(fname string) {
+	var (
+		handle *pcap.Handle
+		err error
+	)
+
+	if "-" == fname {
+		handle, err = pcap.OpenOfflineFile(os.Stdin)
+	} else {
+		handle, err = pcap.OpenOffline(fname)
+	}
+
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -27,13 +43,7 @@ func ParseFile(file *os.File) {
 	ParseDns(handle)
 }
 
-func ParseDevice(device string) {
-	// NOTE: These should probably be parameters of the function
-	snapshotLen := int32(4096)
-	promiscuous := false
-	timeout := 30 * time.Second
-
-	// Open live device
+func ParseDevice(device string, snapshotLen int32, promiscuous bool, timeout time.Duration) {
 	handle, err := pcap.OpenLive(device, snapshotLen, promiscuous, timeout)
 	if err != nil {
 		log.Fatal(err)
@@ -58,7 +68,17 @@ func ParseDns(handle *pcap.Handle) {
 	decoded := []gopacket.LayerType{}
 
 	// Setup BPF filter on handle
-	handle.SetBPFFilter("port 53")
+	if NoParseTcp {
+		err := handle.SetBPFFilter("udp port 53")
+		if err != nil {
+			// TODO: Logging here
+		}
+	} else {
+		err := handle.SetBPFFilter("port 53")
+		if err != nil {
+			// TODO: Logging here
+		}
+	}
 
 	// Use the handle as a packet source to process all packets
 	packetSource := gopacket.NewPacketSource(handle, handle.LinkType())
@@ -66,8 +86,6 @@ func ParseDns(handle *pcap.Handle) {
 
 	PACKETLOOP:
 	for packet := range packetSource.Packets() {
-		schema.Timestamp = packet.Metadata().Timestamp.Second()
-
 		if err := parser.DecodeLayers(packet.Data(), &decoded); err != nil {
 			// TODO: Add logging
 			//fmt.Fprintf(os.Stderr, "Could not decode layers: %v\n", err)
@@ -86,6 +104,7 @@ func ParseDns(handle *pcap.Handle) {
 			case layers.LayerTypeTCP:
 				schema.SourcePort = uint16(tcp.SrcPort)
 				schema.DestinationPort = uint16(tcp.DstPort)
+				schema.Udp = false
 				if err := msg.Unpack(tcp.Payload); err != nil {
 					// TODO: Add logging
 					//fmt.Fprintf(os.Stderr, "Could not decode DNS: %v\n", err)
@@ -94,6 +113,7 @@ func ParseDns(handle *pcap.Handle) {
 			case layers.LayerTypeUDP:
 				schema.SourcePort = uint16(udp.SrcPort)
 				schema.DestinationPort = uint16(udp.DstPort)
+				schema.Udp = true
 				if err := msg.Unpack(udp.Payload); err != nil {
 					// TODO: Add logging
 					//fmt.Fprintf(os.Stderr, "Could not decode DNS: %v\n", err)
@@ -102,13 +122,21 @@ func ParseDns(handle *pcap.Handle) {
 			}
 		}
 
+		// Ignore questions unless flag set
+		if !msg.Response && !DoParseQuestions {
+			continue PACKETLOOP
+		}
+
 		// Fill out information from DNS headers
+		schema.Timestamp = packet.Metadata().Timestamp.Unix()
 		schema.Id = msg.Id
+		schema.Truncated = msg.Truncated
+		schema.Response = msg.Response
 		schema.RecursionDesired = msg.RecursionDesired
 		schema.Nxdomain = msg.Opcode == 3
 
 		// Parse ECS information
-		if opt := msg.IsEdns0(); opt != nil {
+		if opt := msg.IsEdns0(); (opt != nil) && !NoParseEcs {
 			for _, s := range opt.Option {
 				switch o := s.(type) {
 				case *dns.EDNS0_SUBNET:
@@ -117,6 +145,13 @@ func ParseDns(handle *pcap.Handle) {
 					schema.EcsScope = o.SourceScope
 				}
 			}
+		}
+
+		// Let's get QUESTION
+		// TODO: Throw error if there's more than one question
+		for _, qr := range msg.Question {
+			schema.Qname = qr.Name
+			schema.Qtype = qr.Qtype
 		}
 
 		// Let's get ANSWERS
