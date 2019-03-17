@@ -133,7 +133,7 @@ PACKETLOOP:
 		schema.Truncated = msg.Truncated
 		schema.Response = msg.Response
 		schema.RecursionDesired = msg.RecursionDesired
-		schema.Nxdomain = msg.Opcode == 3
+		schema.Nxdomain = msg.Rcode == 3
 
 		// Parse ECS information
 		schema.EcsClient = nil
