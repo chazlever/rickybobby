@@ -18,15 +18,15 @@ const (
 )
 
 var (
-	NoParseTcp = true
-	NoParseEcs = true
+	NoParseTcp       = true
+	NoParseEcs       = true
 	DoParseQuestions = false
 )
 
 func ParseFile(fname string) {
 	var (
 		handle *pcap.Handle
-		err error
+		err    error
 	)
 
 	if "-" == fname {
@@ -68,23 +68,24 @@ func ParseDns(handle *pcap.Handle) {
 	decoded := []gopacket.LayerType{}
 
 	// Setup BPF filter on handle
-	if NoParseTcp {
-		err := handle.SetBPFFilter("udp port 53")
-		if err != nil {
-			// TODO: Logging here
-		}
-	} else {
-		err := handle.SetBPFFilter("port 53")
-		if err != nil {
-			// TODO: Logging here
-		}
+	//var bpfFilter string
+	//if NoParseTcp {
+	//	bpfFilter = "udp port 53"
+	//} else {
+	//	// For now, we're only going to support UDP
+	//	bpfFilter = "port 53"
+	//}
+	err := handle.SetBPFFilter("udp port 53")
+	if err != nil {
+		// TODO: Logging here
+		//fmt.Fprintf(os.Stderr, "Could not set BPF filter: %v\n", err)
 	}
 
 	// Use the handle as a packet source to process all packets
 	packetSource := gopacket.NewPacketSource(handle, handle.LinkType())
 	packetSource.NoCopy = true
 
-	PACKETLOOP:
+PACKETLOOP:
 	for packet := range packetSource.Packets() {
 		if err := parser.DecodeLayers(packet.Data(), &decoded); err != nil {
 			// TODO: Add logging
@@ -133,19 +134,31 @@ func ParseDns(handle *pcap.Handle) {
 		schema.Truncated = msg.Truncated
 		schema.Response = msg.Response
 		schema.RecursionDesired = msg.RecursionDesired
-		schema.Nxdomain = msg.Opcode == 3
+		schema.Nxdomain = msg.Rcode == 3
 
 		// Parse ECS information
+		schema.EcsClient = nil
+		schema.EcsSource = nil
+		schema.EcsScope = nil
 		if opt := msg.IsEdns0(); (opt != nil) && !NoParseEcs {
 			for _, s := range opt.Option {
 				switch o := s.(type) {
 				case *dns.EDNS0_SUBNET:
-					schema.EcsClient = o.Address.String()
-					schema.EcsSource = o.SourceNetmask
-					schema.EcsScope = o.SourceScope
+					ecsClient := o.Address.String()
+					ecsSource := o.SourceNetmask
+					ecsScope := o.SourceScope
+					schema.EcsClient = &ecsClient
+					schema.EcsSource = &ecsSource
+					schema.EcsScope = &ecsScope
 				}
 			}
 		}
+
+		// Reset RR information
+		schema.Ttl = nil
+		schema.Rname = nil
+		schema.Rdata = nil
+		schema.Rtype = nil
 
 		// Let's get QUESTION
 		// TODO: Throw error if there's more than one question
@@ -154,19 +167,25 @@ func ParseDns(handle *pcap.Handle) {
 			schema.Qtype = qr.Qtype
 		}
 
+		// Print questions if configured
+		// If we've received an NXDOMAIN without SOA make sure we print
+		if (DoParseQuestions && !schema.Response) || (schema.Nxdomain && len(msg.Ns) < 1) {
+			schema.ToJson(nil, -1)
+		}
+
 		// Let's get ANSWERS
 		for _, rr := range msg.Answer {
-			schema.ToJson(rr, DnsAnswer)
+			schema.ToJson(&rr, DnsAnswer)
 		}
 
 		// Let's get AUTHORITATIVE information
 		for _, rr := range msg.Ns {
-			schema.ToJson(rr, DnsAuthority)
+			schema.ToJson(&rr, DnsAuthority)
 		}
 
 		// Let's get ADDITIONAL information
 		for _, rr := range msg.Extra {
-			schema.ToJson(rr, DnsAdditional)
+			schema.ToJson(&rr, DnsAdditional)
 		}
 
 		// Let's check and see if we had any errors decoding any of the packets
