@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/pkg/profile"
 	"gopkg.in/urfave/cli.v1"
 	"log"
 	"os"
@@ -11,6 +12,10 @@ import (
 func pcapCommand(c *cli.Context) error {
 	if c.NArg() < 1 {
 		return cli.NewExitError("ERROR: must provide at least one filename", 1)
+	}
+
+	if c.GlobalBool("profile") {
+		defer profile.Start().Stop()
 	}
 
 	// Load global flags
@@ -27,6 +32,10 @@ func pcapCommand(c *cli.Context) error {
 func liveCommand(c *cli.Context) error {
 	if c.NArg() != 1 {
 		return cli.NewExitError("ERROR: must supply exactly one interface", 1)
+	}
+
+	if c.GlobalBool("profile") {
+		defer profile.Start().Stop()
 	}
 
 	// Load global flags
@@ -100,6 +109,10 @@ func main() {
 		cli.BoolFlag{
 			Name:  "questions",
 			Usage: "parse questions in addition to responses",
+		},
+		cli.BoolFlag{
+			Name: "profile",
+			Usage: "toggle performance profiler",
 		},
 	}
 
