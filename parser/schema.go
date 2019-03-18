@@ -11,6 +11,7 @@ import (
 // The ECS fields are pointers because they're nullable.
 type DnsSchema struct {
 	Timestamp          int64   `json:"timestamp"`
+	Sha256             string  `json:"sha256"`
 	Udp                bool    `json:"udp"`
 	Ipv4               bool    `json:"ipv4"`
 	SourceAddress      string  `json:"src_address"`

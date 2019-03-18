@@ -1,6 +1,7 @@
 package parser
 
 import (
+	"crypto/sha256"
 	"fmt"
 	"github.com/google/gopacket"
 	"github.com/google/gopacket/layers"
@@ -108,6 +109,7 @@ PACKETLOOP:
 				schema.SourcePort = uint16(tcp.SrcPort)
 				schema.DestinationPort = uint16(tcp.DstPort)
 				schema.Udp = false
+				schema.Sha256 = fmt.Sprintf("%x", sha256.Sum256(tcp.Payload))
 				if err := msg.Unpack(tcp.Payload); err != nil {
 					// TODO: Add logging
 					//fmt.Fprintf(os.Stderr, "Could not decode DNS: %v\n", err)
@@ -117,6 +119,7 @@ PACKETLOOP:
 				schema.SourcePort = uint16(udp.SrcPort)
 				schema.DestinationPort = uint16(udp.DstPort)
 				schema.Udp = true
+				schema.Sha256 = fmt.Sprintf("%x", sha256.Sum256(udp.Payload))
 				if err := msg.Unpack(udp.Payload); err != nil {
 					// TODO: Add logging
 					//fmt.Fprintf(os.Stderr, "Could not decode DNS: %v\n", err)
@@ -124,6 +127,7 @@ PACKETLOOP:
 				}
 			}
 		}
+
 
 		// Ignore questions unless flag set
 		if !msg.Response && !DoParseQuestions {
