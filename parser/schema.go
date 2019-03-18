@@ -11,16 +11,18 @@ import (
 // The ECS fields are pointers because they're nullable.
 type DnsSchema struct {
 	Timestamp          int64   `json:"timestamp"`
-	Id                 uint16  `json:"id"`
+	Sha256             string  `json:"sha256"`
+	Udp                bool    `json:"udp"`
+	Ipv4               bool    `json:"ipv4"`
 	SourceAddress      string  `json:"src_address"`
 	SourcePort         uint16  `json:"src_port"`
 	DestinationAddress string  `json:"dst_address"`
 	DestinationPort    uint16  `json:"dst_port"`
-	Udp                bool    `json:"udp"`
+	Id                 uint16  `json:"id"`
+	Rcode              int     `json:"rcode"`
 	Truncated          bool    `json:"truncated"`
 	Response           bool    `json:"response"`
 	RecursionDesired   bool    `json:"recursion_desired"`
-	Nxdomain           bool    `json:"nxdomain"`
 	Answer             bool    `json:"answer"`
 	Authority          bool    `json:"authority"`
 	Additional         bool    `json:"additional"`
