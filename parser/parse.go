@@ -99,9 +99,11 @@ PACKETLOOP:
 			case layers.LayerTypeIPv4:
 				schema.SourceAddress = ip4.SrcIP.String()
 				schema.DestinationAddress = ip4.DstIP.String()
+				schema.Ipv4 = true
 			case layers.LayerTypeIPv6:
 				schema.SourceAddress = ip6.SrcIP.String()
 				schema.DestinationAddress = ip6.DstIP.String()
+				schema.Ipv4 = false
 			case layers.LayerTypeTCP:
 				schema.SourcePort = uint16(tcp.SrcPort)
 				schema.DestinationPort = uint16(tcp.DstPort)
@@ -131,10 +133,10 @@ PACKETLOOP:
 		// Fill out information from DNS headers
 		schema.Timestamp = packet.Metadata().Timestamp.Unix()
 		schema.Id = msg.Id
+		schema.Rcode = msg.Rcode
 		schema.Truncated = msg.Truncated
 		schema.Response = msg.Response
 		schema.RecursionDesired = msg.RecursionDesired
-		schema.Nxdomain = msg.Rcode == 3
 
 		// Parse ECS information
 		schema.EcsClient = nil
@@ -169,7 +171,7 @@ PACKETLOOP:
 
 		// Print questions if configured
 		// If we've received an NXDOMAIN without SOA make sure we print
-		if (DoParseQuestions && !schema.Response) || (schema.Nxdomain && len(msg.Ns) < 1) {
+		if (DoParseQuestions && !schema.Response) || (schema.Rcode == 3 && len(msg.Ns) < 1) {
 			schema.ToJson(nil, -1)
 		}
 
