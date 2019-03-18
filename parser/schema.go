@@ -63,9 +63,9 @@ func (d DnsSchema) ToJson(rr *dns.RR, section int) {
 		}
 	}
 
-	jsonData, err := json.Marshal(d)
+	jsonData, err := json.Marshal(&d)
 	if err != nil {
 		fmt.Println(err)
 	}
-	fmt.Println(string(jsonData))
+	fmt.Printf("%s\n", jsonData)
 }
