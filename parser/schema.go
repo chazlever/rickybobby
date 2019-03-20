@@ -35,6 +35,8 @@ type DnsSchema struct {
 	EcsClient          *string `json:"ecs_client"`
 	EcsSource          *uint8  `json:"ecs_source"`
 	EcsScope           *uint8  `json:"ecs_scope"`
+	Source             string  `json:"source,omitempty"`
+	Sensor             string  `json:"sensor,omitempty"`
 }
 
 func (d DnsSchema) ToJson(rr *dns.RR, section int) {
