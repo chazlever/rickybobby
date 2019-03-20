@@ -22,6 +22,8 @@ var (
 	NoParseTcp       = true
 	NoParseEcs       = true
 	DoParseQuestions = false
+	Source           = ""
+	Sensor           = ""
 )
 
 func ParseFile(fname string) {
@@ -63,6 +65,10 @@ func ParseDns(handle *pcap.Handle) {
 		tcp    layers.TCP
 		udp    layers.UDP
 	)
+
+	// Set the source and sensor for packet source
+	schema.Sensor = Sensor
+	schema.Source = Source
 
 	// Let's reuse the same layers for performance improvement
 	parser := gopacket.NewDecodingLayerParser(layers.LayerTypeEthernet, &eth, &ip4, &ip6, &tcp, &udp)
@@ -127,7 +133,6 @@ PACKETLOOP:
 				}
 			}
 		}
-
 
 		// Ignore questions unless flag set
 		if !msg.Response && !DoParseQuestions {

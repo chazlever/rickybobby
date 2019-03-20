@@ -22,6 +22,8 @@ func pcapCommand(c *cli.Context) error {
 	parser.NoParseTcp = c.GlobalBool("no-tcp")
 	parser.NoParseEcs = c.GlobalBool("no-ecs")
 	parser.DoParseQuestions = c.GlobalBool("questions")
+	parser.Source = c.GlobalString("source")
+	parser.Sensor = c.GlobalString("sensor")
 
 	for _, f := range c.Args() {
 		parser.ParseFile(f)
@@ -42,6 +44,8 @@ func liveCommand(c *cli.Context) error {
 	parser.NoParseTcp = c.GlobalBool("no-tcp")
 	parser.NoParseEcs = c.GlobalBool("no-ecs")
 	parser.DoParseQuestions = c.GlobalBool("questions")
+	parser.Source = c.GlobalString("source")
+	parser.Sensor = c.GlobalString("sensor")
 
 	// Load command specific flags
 	snapshotLen := int32(c.Int("snaplen"))
@@ -111,8 +115,16 @@ func main() {
 			Usage: "parse questions in addition to responses",
 		},
 		cli.BoolFlag{
-			Name: "profile",
+			Name:  "profile",
 			Usage: "toggle performance profiler",
+		},
+		cli.StringFlag{
+			Name:  "sensor",
+			Usage: "name of sensor DNS traffic was collected from",
+		},
+		cli.StringFlag{
+			Name:  "source",
+			Usage: "name of source DNS traffic was collected from",
 		},
 	}
 
