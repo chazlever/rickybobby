@@ -7,7 +7,7 @@ import (
 	"github.com/google/gopacket/layers"
 	"github.com/google/gopacket/pcap"
 	"github.com/miekg/dns"
-	"log"
+	log "github.com/sirupsen/logrus"
 	"os"
 	"time"
 )
@@ -64,6 +64,7 @@ func ParseDns(handle *pcap.Handle) {
 		ip6    layers.IPv6
 		tcp    layers.TCP
 		udp    layers.UDP
+		ldns   layers.DNS
 	)
 
 	// Set the source and sensor for packet source
@@ -71,7 +72,7 @@ func ParseDns(handle *pcap.Handle) {
 	schema.Source = Source
 
 	// Let's reuse the same layers for performance improvement
-	parser := gopacket.NewDecodingLayerParser(layers.LayerTypeEthernet, &eth, &ip4, &ip6, &tcp, &udp)
+	parser := gopacket.NewDecodingLayerParser(layers.LayerTypeEthernet, &eth, &ip4, &ip6, &tcp, &udp, &ldns)
 	decoded := []gopacket.LayerType{}
 
 	// Setup BPF filter on handle
@@ -84,8 +85,7 @@ func ParseDns(handle *pcap.Handle) {
 	//}
 	err := handle.SetBPFFilter("udp port 53")
 	if err != nil {
-		// TODO: Logging here
-		//fmt.Fprintf(os.Stderr, "Could not set BPF filter: %v\n", err)
+		log.Warnf("Could not set BPF filter: %v\n", err)
 	}
 
 	// Use the handle as a packet source to process all packets
@@ -95,8 +95,7 @@ func ParseDns(handle *pcap.Handle) {
 PACKETLOOP:
 	for packet := range packetSource.Packets() {
 		if err := parser.DecodeLayers(packet.Data(), &decoded); err != nil {
-			// TODO: Add logging
-			//fmt.Fprintf(os.Stderr, "Could not decode layers: %v\n", err)
+			log.Warnf("Could not decode layers: %v\n", err)
 		}
 
 		// Let's decode different layers
@@ -117,8 +116,7 @@ PACKETLOOP:
 				schema.Udp = false
 				schema.Sha256 = fmt.Sprintf("%x", sha256.Sum256(tcp.Payload))
 				if err := msg.Unpack(tcp.Payload); err != nil {
-					// TODO: Add logging
-					//fmt.Fprintf(os.Stderr, "Could not decode DNS: %v\n", err)
+					log.Errorf("Could not decode DNS: %v\n", err)
 					continue PACKETLOOP
 				}
 			case layers.LayerTypeUDP:
@@ -127,8 +125,7 @@ PACKETLOOP:
 				schema.Udp = true
 				schema.Sha256 = fmt.Sprintf("%x", sha256.Sum256(udp.Payload))
 				if err := msg.Unpack(udp.Payload); err != nil {
-					// TODO: Add logging
-					//fmt.Fprintf(os.Stderr, "Could not decode DNS: %v\n", err)
+					log.Errorf("Could not decode DNS: %v\n", err)
 					continue PACKETLOOP
 				}
 			}
@@ -201,7 +198,7 @@ PACKETLOOP:
 
 		// Let's check and see if we had any errors decoding any of the packets
 		if err := packet.ErrorLayer(); err != nil {
-			fmt.Println("Error decoding some part of the packet:", err)
+			log.Warnf("Error decoding some part of the packet:", err)
 		}
 	}
 }
