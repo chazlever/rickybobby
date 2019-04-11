@@ -73,6 +73,7 @@ func ParseDns(handle *pcap.Handle) {
 	var (
 		schema DnsSchema
 		eth    layers.Ethernet
+		dot1q  layers.Dot1Q
 		ip4    layers.IPv4
 		ip6    layers.IPv6
 		tcp    layers.TCP
