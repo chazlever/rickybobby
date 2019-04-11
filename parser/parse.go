@@ -53,6 +53,19 @@ func ParseDevice(device string, snapshotLen int32, promiscuous bool, timeout tim
 	}
 	defer handle.Close()
 
+	// Setup BPF filter on handle
+	//var bpfFilter string
+	//if NoParseTcp {
+	//	bpfFilter = "udp port 53"
+	//} else {
+	//	// For now, we're only going to support UDP
+	//	bpfFilter = "port 53"
+	//}
+	err = handle.SetBPFFilter("udp port 53")
+	if err != nil {
+		log.Warnf("Could not set BPF filter: %v\n", err)
+	}
+
 	ParseDns(handle)
 }
 
