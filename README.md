@@ -76,11 +76,14 @@ application without any arguments.
          help, h  Shows a list of commands or help for one command
     
     GLOBAL OPTIONS:
-       --no-tcp       do not attempt to parse TCP packets
-       --no-ecs       do not attempt to parse ECS information
-       --questions    parse questions in addition to responses
-       --help, -h     show help
-       --version, -v  print the version
+       --tcp            attempt to parse TCP packets
+       --questions      parse questions in addition to responses
+       --questions-ecs  parse questions only if they contain ECS information
+       --profile        toggle performance profiler
+       --sensor value   name of sensor DNS traffic was collected from
+       --source value   name of source DNS traffic was collected from
+       --help, -h       show help
+       --version, -v    print the version
 
 The application is broken out into two different commands that affect where
 traffic is parsed from. More details on each of these commands is provided
