@@ -141,7 +141,7 @@ PACKETLOOP:
 		}
 
 		// Ignore questions unless flag set
-		if !msg.Response && !DoParseQuestions {
+		if !msg.Response && !DoParseQuestions && !DoParseQuestionsEcs {
 			continue PACKETLOOP
 		}
 
