@@ -9,6 +9,14 @@ import (
 	"time"
 )
 
+func loadGlobalOptions(c *cli.Context) {
+	parser.DoParseTcp = c.GlobalBool("tcp")
+	parser.DoParseQuestions = c.GlobalBool("questions")
+	parser.DoParseQuestionsEcs = c.GlobalBool("questions-ecs")
+	parser.Source = c.GlobalString("source")
+	parser.Sensor = c.GlobalString("sensor")
+}
+
 func pcapCommand(c *cli.Context) error {
 	if c.NArg() < 1 {
 		return cli.NewExitError("ERROR: must provide at least one filename", 1)
@@ -18,12 +26,7 @@ func pcapCommand(c *cli.Context) error {
 		defer profile.Start().Stop()
 	}
 
-	// Load global flags
-	parser.NoParseTcp = c.GlobalBool("no-tcp")
-	parser.NoParseEcs = c.GlobalBool("no-ecs")
-	parser.DoParseQuestions = c.GlobalBool("questions")
-	parser.Source = c.GlobalString("source")
-	parser.Sensor = c.GlobalString("sensor")
+	loadGlobalOptions(c)
 
 	for _, f := range c.Args() {
 		parser.ParseFile(f)
@@ -40,12 +43,7 @@ func liveCommand(c *cli.Context) error {
 		defer profile.Start().Stop()
 	}
 
-	// Load global flags
-	parser.NoParseTcp = c.GlobalBool("no-tcp")
-	parser.NoParseEcs = c.GlobalBool("no-ecs")
-	parser.DoParseQuestions = c.GlobalBool("questions")
-	parser.Source = c.GlobalString("source")
-	parser.Sensor = c.GlobalString("sensor")
+	loadGlobalOptions(c)
 
 	// Load command specific flags
 	snapshotLen := int32(c.Int("snaplen"))
@@ -103,16 +101,16 @@ func main() {
 
 	app.Flags = []cli.Flag{
 		cli.BoolFlag{
-			Name:  "no-tcp",
-			Usage: "do not attempt to parse TCP packets",
-		},
-		cli.BoolFlag{
-			Name:  "no-ecs",
-			Usage: "do not attempt to parse ECS information",
+			Name:  "tcp",
+			Usage: "attempt to parse TCP packets",
 		},
 		cli.BoolFlag{
 			Name:  "questions",
 			Usage: "parse questions in addition to responses",
+		},
+		cli.BoolFlag{
+			Name:  "questions-ecs",
+			Usage: "parse questions only if they contain ECS information",
 		},
 		cli.BoolFlag{
 			Name:  "profile",

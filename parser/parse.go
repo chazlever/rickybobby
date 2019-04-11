@@ -19,11 +19,11 @@ const (
 )
 
 var (
-	NoParseTcp       = true
-	NoParseEcs       = true
-	DoParseQuestions = false
-	Source           = ""
-	Sensor           = ""
+	DoParseTcp          = true
+	DoParseQuestions    = false
+	DoParseQuestionsEcs = true
+	Source              = ""
+	Sensor              = ""
 )
 
 func ParseFile(fname string) {
@@ -54,14 +54,11 @@ func ParseDevice(device string, snapshotLen int32, promiscuous bool, timeout tim
 	defer handle.Close()
 
 	// Setup BPF filter on handle
-	//var bpfFilter string
-	//if NoParseTcp {
-	//	bpfFilter = "udp port 53"
-	//} else {
-	//	// For now, we're only going to support UDP
-	//	bpfFilter = "port 53"
-	//}
-	err = handle.SetBPFFilter("udp port 53")
+	bpfFilter := "udp port 53"
+	if DoParseTcp {
+		bpfFilter = "port 53"
+	}
+	err = handle.SetBPFFilter(bpfFilter)
 	if err != nil {
 		log.Warnf("Could not set BPF filter: %v\n", err)
 	}
@@ -90,7 +87,7 @@ func ParseDns(handle *pcap.Handle) {
 
 	// Let's reuse the same layers for performance improvement
 	parser := gopacket.NewDecodingLayerParser(layers.LayerTypeEthernet, &eth, &dot1q, &ip4, &ip6, &tcp, &udp, &ldns)
-	decoded := []gopacket.LayerType{}
+	var decoded []gopacket.LayerType
 
 	// Use the handle as a packet source to process all packets
 	packetSource := gopacket.NewPacketSource(handle, handle.LinkType())
@@ -160,7 +157,7 @@ PACKETLOOP:
 		schema.EcsClient = nil
 		schema.EcsSource = nil
 		schema.EcsScope = nil
-		if opt := msg.IsEdns0(); (opt != nil) && !NoParseEcs {
+		if opt := msg.IsEdns0(); opt != nil {
 			for _, s := range opt.Option {
 				switch o := s.(type) {
 				case *dns.EDNS0_SUBNET:
@@ -187,9 +184,12 @@ PACKETLOOP:
 			schema.Qtype = qr.Qtype
 		}
 
-		// Print questions if configured
-		// If we've received an NXDOMAIN without SOA make sure we print
-		if (DoParseQuestions && !schema.Response) || (schema.Rcode == 3 && len(msg.Ns) < 1) {
+		// 1. Print all questions
+		// 2. Print only questions with ECS
+		// 3. Print NXDOMAINs without RRs (i.e., SOA)
+		if (DoParseQuestions && !schema.Response) ||
+			(DoParseQuestionsEcs && schema.EcsClient != nil && !schema.Response) ||
+			(schema.Rcode == 3 && len(msg.Ns) < 1) {
 			schema.ToJson(nil, -1)
 		}
 
