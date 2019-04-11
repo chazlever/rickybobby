@@ -42,19 +42,16 @@ type DnsSchema struct {
 
 func (d DnsSchema) ToJson(rr *dns.RR, section int) {
 	if rr != nil {
-		// TODO: Fix how RDATA is handled
-		// This won't always work if the RDATA has tabs in it.
-		answer := strings.Split((*rr).String(), "\t")
-		rdata := answer[len(answer)-1]
-		ttl := (*rr).Header().Ttl
-		rname := (*rr).Header().Name
-		rtype := (*rr).Header().Rrtype
+		// This works because RR.Header().String() prefixes the RDATA
+		// in the RR.String() representation.
+		// Reference: https://github.com/miekg/dns/blob/master/types.go
+		rdata := strings.TrimPrefix((*rr).String(), (*rr).Header().String())
 
 		// Fill in the rest of the parameters
 		// This will not alter the underlying DNS schema
-		d.Ttl = &ttl
-		d.Rname = &rname
-		d.Rtype = &rtype
+		d.Ttl = &(*rr).Header().Ttl
+		d.Rname = &(*rr).Header().Name
+		d.Rtype = &(*rr).Header().Rrtype
 		d.Rdata = &rdata
 		d.Answer = section == DnsAnswer
 		d.Authority = section == DnsAuthority
