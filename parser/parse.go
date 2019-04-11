@@ -67,26 +67,16 @@ func ParseDns(handle *pcap.Handle) {
 		ldns   layers.DNS
 	)
 
+	// Keep track of parsing statistics
+	stats := Statistics{}
+
 	// Set the source and sensor for packet source
 	schema.Sensor = Sensor
 	schema.Source = Source
 
 	// Let's reuse the same layers for performance improvement
-	parser := gopacket.NewDecodingLayerParser(layers.LayerTypeEthernet, &eth, &ip4, &ip6, &tcp, &udp, &ldns)
+	parser := gopacket.NewDecodingLayerParser(layers.LayerTypeEthernet, &eth, &dot1q, &ip4, &ip6, &tcp, &udp, &ldns)
 	decoded := []gopacket.LayerType{}
-
-	// Setup BPF filter on handle
-	//var bpfFilter string
-	//if NoParseTcp {
-	//	bpfFilter = "udp port 53"
-	//} else {
-	//	// For now, we're only going to support UDP
-	//	bpfFilter = "port 53"
-	//}
-	err := handle.SetBPFFilter("udp port 53")
-	if err != nil {
-		log.Warnf("Could not set BPF filter: %v\n", err)
-	}
 
 	// Use the handle as a packet source to process all packets
 	packetSource := gopacket.NewPacketSource(handle, handle.LinkType())
@@ -94,8 +84,10 @@ func ParseDns(handle *pcap.Handle) {
 
 PACKETLOOP:
 	for packet := range packetSource.Packets() {
+		stats.PacketTotal += 1
+
 		if err := parser.DecodeLayers(packet.Data(), &decoded); err != nil {
-			log.Warnf("Could not decode layers: %v\n", err)
+			log.Debugf("Could not decode layers: %v\n", err)
 		}
 
 		// Let's decode different layers
@@ -103,29 +95,35 @@ PACKETLOOP:
 		for _, layerType := range decoded {
 			switch layerType {
 			case layers.LayerTypeIPv4:
+				stats.PacketIPv4 += 1
 				schema.SourceAddress = ip4.SrcIP.String()
 				schema.DestinationAddress = ip4.DstIP.String()
 				schema.Ipv4 = true
 			case layers.LayerTypeIPv6:
+				stats.PacketIPv6 += 1
 				schema.SourceAddress = ip6.SrcIP.String()
 				schema.DestinationAddress = ip6.DstIP.String()
 				schema.Ipv4 = false
 			case layers.LayerTypeTCP:
+				stats.PacketTcp += 1
 				schema.SourcePort = uint16(tcp.SrcPort)
 				schema.DestinationPort = uint16(tcp.DstPort)
 				schema.Udp = false
 				schema.Sha256 = fmt.Sprintf("%x", sha256.Sum256(tcp.Payload))
 				if err := msg.Unpack(tcp.Payload); err != nil {
 					log.Errorf("Could not decode DNS: %v\n", err)
+					stats.PacketErrors += 1
 					continue PACKETLOOP
 				}
 			case layers.LayerTypeUDP:
+				stats.PacketUdp += 1
 				schema.SourcePort = uint16(udp.SrcPort)
 				schema.DestinationPort = uint16(udp.DstPort)
 				schema.Udp = true
 				schema.Sha256 = fmt.Sprintf("%x", sha256.Sum256(udp.Payload))
 				if err := msg.Unpack(udp.Payload); err != nil {
 					log.Errorf("Could not decode DNS: %v\n", err)
+					stats.PacketErrors += 1
 					continue PACKETLOOP
 				}
 			}
@@ -198,7 +196,14 @@ PACKETLOOP:
 
 		// Let's check and see if we had any errors decoding any of the packets
 		if err := packet.ErrorLayer(); err != nil {
-			log.Warnf("Error decoding some part of the packet:", err)
+			log.Debugf("Error decoding some part of the packet:", err)
 		}
 	}
+
+	log.Infof("Number of TOTAL packets: %v", stats.PacketTotal)
+	log.Infof("Number of IPv4 packets: %v", stats.PacketIPv4)
+	log.Infof("Number of IPv6 packets: %v", stats.PacketIPv6)
+	log.Infof("Number of UDP packets: %v", stats.PacketUdp)
+	log.Infof("Number of TCP packets: %v", stats.PacketTcp)
+	log.Infof("Number of FAILED packets: %v", stats.PacketErrors)
 }
