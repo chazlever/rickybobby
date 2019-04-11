@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/miekg/dns"
+	log "github.com/sirupsen/logrus"
 	"strings"
 )
 
@@ -67,7 +68,7 @@ func (d DnsSchema) ToJson(rr *dns.RR, section int) {
 
 	jsonData, err := json.Marshal(&d)
 	if err != nil {
-		fmt.Println(err)
+		log.Warnf("Error converting to JSON: %v", err)
 	}
 	fmt.Printf("%s\n", jsonData)
 }

@@ -2,8 +2,8 @@ package main
 
 import (
 	"github.com/pkg/profile"
+	log "github.com/sirupsen/logrus"
 	"gopkg.in/urfave/cli.v1"
-	"log"
 	"os"
 	"rickybobby/parser"
 	"time"
