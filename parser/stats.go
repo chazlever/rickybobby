@@ -12,6 +12,7 @@ type Statistics struct {
 	PacketIPv6   uint `json:"packetIPv6"`
 	PacketTcp    uint `json:"packetTcp"`
 	PacketUdp    uint `json:"packetUdp"`
+	PacketDns    uint `json:"packetDns"`
 	PacketErrors uint `json:"packetErrors"`
 }
 
