@@ -21,7 +21,12 @@ func loadGlobalOptions(c *cli.Context) {
 	parser.Format = c.GlobalString("format")
 	parser.OutputType = c.GlobalString("output-type")
 	parser.Config = c.GlobalString("config")
-	parser.MessageKey = c.GlobalString("kafka-key")
+
+	producer.MessageKey = c.GlobalString("kafka-key")
+	producer.Topic = c.GlobalString("kafka-topic")
+	producer.SASLUsername = c.GlobalString("kafka-username")
+	producer.SASLPassword = c.GlobalString("kafka-password")
+	producer.Brokers = c.GlobalStringSlice("kafka-brokers")
 
 }
 
@@ -46,7 +51,22 @@ func pcapCommand(c *cli.Context) error {
 		viper.ReadInConfig()
 	}
 	if parser.OutputType == "kafka" {
-		parser.KafkaProducer = producer.NewAccessLogProducer(viper.GetStringSlice("KafkaBrokers"))
+		if producer.MessageKey == "" {
+			producer.MessageKey = viper.GetString("KafkaMessageKey")
+		}
+		if len(producer.Brokers) == 0 {
+			producer.Brokers = viper.GetStringSlice("KafkaBrokers")
+		}
+		if producer.SASLUsername == "" {
+			producer.SASLUsername = viper.GetString("KafkaSASLUsername")
+		}
+		if producer.SASLPassword == "" {
+			producer.SASLUsername = viper.GetString("KafkaSASLPassword")
+		}
+		if producer.Topic == "" {
+			producer.Topic = viper.GetString("KafkaTopic")
+		}
+		producer.Producer = producer.NewProducer()
 	}
 
 	for _, f := range c.Args() {
@@ -68,7 +88,6 @@ func liveCommand(c *cli.Context) error {
 
 	if parser.Config != "" {
 		viper.SetDefault("KafkaSASL", true)
-		viper.SetDefault("MessageKey", "adns-{date}")
 		viper.SetDefault("KafkaSASLUsername", "user")
 		viper.SetDefault("KafkaSASLPassword", "thisisabadpassword")
 		viper.SetConfigFile(parser.Config)
@@ -172,10 +191,22 @@ func main() {
 			Name:  "kafka-key",
 			Usage: "(kafka) Key to use when sending data to Kafka",
 		},
-		// cli.StringFlag{
-		// 	Name:  "topic",
-		// 	Usage: "(kafka) Topic",
-		// },
+		cli.StringFlag{
+			Name:  "kafka-topic",
+			Usage: "(kafka) Topic",
+		},
+		cli.StringFlag{
+			Name:  "kafka-username",
+			Usage: "(kafka) Username for SASL authentication to Kafka brokers",
+		},
+		cli.StringFlag{
+			Name:  "kafka-password",
+			Usage: "(kafka) Password for SASL authentication to Kafka brokers",
+		},
+		cli.StringSliceFlag{
+			Name:  "kafka-brokers",
+			Usage: "(kafka) List of Kafka brokers",
+		},
 	}
 
 	app.Action = cli.ShowAppHelp

@@ -6,7 +6,6 @@ import (
 	"os"
 	"time"
 
-	"github.com/Shopify/sarama"
 	"github.com/google/gopacket"
 	"github.com/google/gopacket/layers"
 	"github.com/google/gopacket/pcap"
@@ -21,14 +20,12 @@ const (
 )
 
 var (
-	DoParseTcp                               = true
-	DoParseQuestions                         = false
-	DoParseQuestionsEcs                      = true
-	Source                                   = ""
-	Sensor                                   = ""
-	Config                                   = ""
-	KafkaProducer       sarama.AsyncProducer = nil
-	MessageKey                               = ""
+	DoParseTcp          = true
+	DoParseQuestions    = false
+	DoParseQuestionsEcs = true
+	Source              = ""
+	Sensor              = ""
+	Config              = ""
 )
 
 func ParseFile(fname string) {

@@ -10,7 +10,6 @@ import (
 	"github.com/Shopify/sarama"
 	"github.com/miekg/dns"
 	log "github.com/sirupsen/logrus"
-	"github.com/spf13/viper"
 )
 
 var (
@@ -78,7 +77,6 @@ func (d DnsSchema) FormatOutput(rr *dns.RR, section int) {
 
 func FormatOutputExport(schema *DnsSchema) {
 	if Format == "avro" {
-		// return []byte("[unimplemented]"
 		codec, err := producer.NewAvroCodec()
 
 		var schemaIdentifier uint32 = 3
@@ -96,13 +94,12 @@ func FormatOutputExport(schema *DnsSchema) {
 			log.Warnf("Error while initializing avro codec: %v", err)
 		}
 		if OutputType == "kafka" {
-			KafkaProducer.Input() <- &sarama.ProducerMessage{
-				Topic: viper.GetString("KafkaTopic"),
-				Key:   sarama.StringEncoder(MessageKey),
+			producer.Producer.Input() <- &sarama.ProducerMessage{
+				Topic: producer.Topic,
+				Key:   sarama.StringEncoder(producer.MessageKey),
 				Value: sarama.ByteEncoder(confluentMessage),
 			}
 		} else if OutputType == "stdout" {
-			fmt.Println("111")
 			fmt.Printf("%s\n", &confluentMessage)
 		}
 	} else if Format == "json" {
