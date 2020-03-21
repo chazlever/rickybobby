@@ -1,11 +1,21 @@
 package parser
 
 import (
+	"encoding/binary"
 	"encoding/json"
 	"fmt"
+	"rickybobby/producer"
+	"strings"
+
+	"github.com/Shopify/sarama"
 	"github.com/miekg/dns"
 	log "github.com/sirupsen/logrus"
-	"strings"
+	"github.com/spf13/viper"
+)
+
+var (
+	Format     = "json"
+	OutputType = ""
 )
 
 // JSON serialization only supports nullifying types that can accept nil.
@@ -40,7 +50,7 @@ type DnsSchema struct {
 	Sensor             string  `json:"sensor,omitempty"`
 }
 
-func (d DnsSchema) ToJson(rr *dns.RR, section int) {
+func (d DnsSchema) FormatOutput(rr *dns.RR, section int) {
 	if rr != nil {
 		// This works because RR.Header().String() prefixes the RDATA
 		// in the RR.String() representation.
@@ -62,10 +72,100 @@ func (d DnsSchema) ToJson(rr *dns.RR, section int) {
 			return
 		}
 	}
+	FormatOutputExport(&d)
 
-	jsonData, err := json.Marshal(&d)
-	if err != nil {
-		log.Warnf("Error converting to JSON: %v", err)
+}
+
+func FormatOutputExport(schema *DnsSchema) {
+	if Format == "avro" {
+		// return []byte("[unimplemented]"
+		codec, err := producer.NewAvroCodec()
+
+		var schemaIdentifier uint32 = 3
+		var schemaIdentifierBuffer []byte = make([]byte, 4)
+		binary.BigEndian.PutUint32(schemaIdentifierBuffer, schemaIdentifier)
+
+		binary, err := codec.BinaryFromNative(nil, DNSToAvroMap(schema))
+		var confluentAvroHeader []byte = make([]byte, 5)
+		// header = append([]byte{0}, schemaIdentifierBuffer...)
+		confluentMessage := append(confluentAvroHeader, binary...)
+		if err != nil {
+			log.Fatalf("Failed to convert Go map to Avro binary data: %v", err)
+		}
+		if err != nil {
+			log.Warnf("Error while initializing avro codec: %v", err)
+		}
+		if OutputType == "kafka" {
+			KafkaProducer.Input() <- &sarama.ProducerMessage{
+				Topic: viper.GetString("KafkaTopic"),
+				Key:   sarama.StringEncoder(MessageKey),
+				Value: sarama.ByteEncoder(confluentMessage),
+			}
+		} else if OutputType == "stdout" {
+			fmt.Println("111")
+			fmt.Printf("%s\n", &confluentMessage)
+		}
+	} else if Format == "json" {
+		jsonData, err := json.Marshal(&schema)
+		if err != nil {
+			log.Warnf("Error converting to JSON: %v", err)
+		}
+		fmt.Printf("%s\n", &jsonData)
 	}
-	fmt.Printf("%s\n", jsonData)
+}
+
+func DNSToAvroMap(schema *DnsSchema) map[string]interface{} {
+	// var ecsClient map[string]interface{}
+	// if schema.EcsClient != nil {
+	// 	ecsClient = map[string]interface{}{"string": *schema.EcsClient}
+	// } else {
+	// 	ecsClient = map[string]interface{}{"null": 1}
+	// }
+	avroMap := map[string]interface{}{
+		"timestamp":         schema.Timestamp,
+		"ip_src":            schema.Source,
+		"ip_dst":            schema.DestinationAddress,
+		"dst_port":          int32(schema.DestinationPort),
+		"txid":              int32(schema.Id), // ??
+		"rcode":             schema.Rcode,
+		"qtype":             int32(schema.Qtype),
+		"qname":             schema.Qname,
+		"recursion_desired": schema.RecursionDesired,
+		"response":          schema.Response,
+		"answer":            map[string]interface{}{"boolean": schema.Answer},
+		"authority":         map[string]interface{}{"boolean": schema.Authority},
+		"additional":        map[string]interface{}{"boolean": schema.Additional},
+		"source":            schema.Source,
+	}
+	if schema.Rname != nil {
+		avroMap["rname"] = map[string]interface{}{"string": *schema.Rname}
+	}
+	if schema.Rtype != nil {
+		avroMap["rtype"] = map[string]interface{}{"int": int32(*schema.Rtype)}
+	}
+	if schema.Rdata != nil {
+		avroMap["rdata"] = map[string]interface{}{"string": *schema.Rdata}
+	}
+	if schema.Ttl != nil {
+		avroMap["ttl"] = map[string]interface{}{"long": int64(*schema.Ttl)}
+	}
+	if schema.EcsClient != nil {
+		avroMap["ecs_client"] = map[string]interface{}{"string": *schema.EcsClient}
+	}
+	if schema.EcsSource != nil {
+		avroMap["ecs_source"] = map[string]interface{}{"string": string(*schema.EcsSource)}
+	}
+	if schema.EcsScope != nil {
+		avroMap["ecs_scope"] = map[string]interface{}{"string": string(*schema.EcsScope)}
+	}
+	if schema.Source != "" {
+		avroMap["sensor"] = map[string]interface{}{"string": schema.Sensor}
+	}
+
+	if schema.Ipv4 {
+		avroMap["ip_version"] = 4
+	} else {
+		avroMap["ip_version"] = 6
+	}
+	return avroMap
 }

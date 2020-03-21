@@ -3,13 +3,15 @@ package parser
 import (
 	"crypto/sha256"
 	"fmt"
+	"os"
+	"time"
+
+	"github.com/Shopify/sarama"
 	"github.com/google/gopacket"
 	"github.com/google/gopacket/layers"
 	"github.com/google/gopacket/pcap"
 	"github.com/miekg/dns"
 	log "github.com/sirupsen/logrus"
-	"os"
-	"time"
 )
 
 const (
@@ -19,11 +21,14 @@ const (
 )
 
 var (
-	DoParseTcp          = true
-	DoParseQuestions    = false
-	DoParseQuestionsEcs = true
-	Source              = ""
-	Sensor              = ""
+	DoParseTcp                               = true
+	DoParseQuestions                         = false
+	DoParseQuestionsEcs                      = true
+	Source                                   = ""
+	Sensor                                   = ""
+	Config                                   = ""
+	KafkaProducer       sarama.AsyncProducer = nil
+	MessageKey                               = ""
 )
 
 func ParseFile(fname string) {
@@ -205,22 +210,22 @@ PACKETLOOP:
 		if (DoParseQuestions && !schema.Response) ||
 			(DoParseQuestionsEcs && schema.EcsClient != nil && !schema.Response) ||
 			(schema.Rcode == 3 && len(msg.Ns) < 1) {
-			schema.ToJson(nil, -1)
+			schema.FormatOutput(nil, -1)
 		}
 
 		// Let's get ANSWERS
 		for _, rr := range msg.Answer {
-			schema.ToJson(&rr, DnsAnswer)
+			schema.FormatOutput(&rr, DnsAnswer)
 		}
 
 		// Let's get AUTHORITATIVE information
 		for _, rr := range msg.Ns {
-			schema.ToJson(&rr, DnsAuthority)
+			schema.FormatOutput(&rr, DnsAuthority)
 		}
 
 		// Let's get ADDITIONAL information
 		for _, rr := range msg.Extra {
-			schema.ToJson(&rr, DnsAdditional)
+			schema.FormatOutput(&rr, DnsAdditional)
 		}
 	}
 

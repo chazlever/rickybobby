@@ -126,6 +126,7 @@ as follows:
        --snaplen value  set snapshot length for PCAP collection (default: 4096)
        --promiscuous    set promiscuous mode for traffic collection
        --timeout value  set timeout value for traffic collection (default: 30)
+       --format  value   set output format for parsed traffic (options: json, avro) (default: json)
        
 As shown above, the `live` command accepts the name of an interface to parse
 from as its sole argument. There are also a number of command specific flags

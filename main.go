@@ -1,12 +1,15 @@
 package main
 
 import (
-	"github.com/pkg/profile"
-	log "github.com/sirupsen/logrus"
-	"gopkg.in/urfave/cli.v1"
+	"log"
 	"os"
 	"rickybobby/parser"
+	"rickybobby/producer"
 	"time"
+
+	"github.com/pkg/profile"
+	"github.com/spf13/viper"
+	"gopkg.in/urfave/cli.v1"
 )
 
 func loadGlobalOptions(c *cli.Context) {
@@ -15,9 +18,15 @@ func loadGlobalOptions(c *cli.Context) {
 	parser.DoParseQuestionsEcs = c.GlobalBool("questions-ecs")
 	parser.Source = c.GlobalString("source")
 	parser.Sensor = c.GlobalString("sensor")
+	parser.Format = c.GlobalString("format")
+	parser.OutputType = c.GlobalString("output-type")
+	parser.Config = c.GlobalString("config")
+	parser.MessageKey = c.GlobalString("kafka-key")
+
 }
 
 func pcapCommand(c *cli.Context) error {
+
 	if c.NArg() < 1 {
 		return cli.NewExitError("ERROR: must provide at least one filename", 1)
 	}
@@ -27,6 +36,18 @@ func pcapCommand(c *cli.Context) error {
 	}
 
 	loadGlobalOptions(c)
+
+	if parser.Config != "" {
+		viper.SetDefault("KafkaSASL", true)
+		viper.SetDefault("KafkaTopic", "rickybobby")
+		viper.SetDefault("KafkaSASLUsername", "user")
+		viper.SetDefault("KafkaSASLPassword", "thisisabadpassword")
+		viper.SetConfigFile(parser.Config)
+		viper.ReadInConfig()
+		if parser.OutputType == "kafka" {
+			parser.KafkaProducer = producer.NewAccessLogProducer(viper.GetStringSlice("KafkaBrokers"))
+		}
+	}
 
 	for _, f := range c.Args() {
 		parser.ParseFile(f)
@@ -44,6 +65,15 @@ func liveCommand(c *cli.Context) error {
 	}
 
 	loadGlobalOptions(c)
+
+	if parser.Config != "" {
+		viper.SetDefault("KafkaSASL", true)
+		viper.SetDefault("MessageKey", "adns-{date}")
+		viper.SetDefault("KafkaSASLUsername", "user")
+		viper.SetDefault("KafkaSASLPassword", "thisisabadpassword")
+		viper.SetConfigFile(parser.Config)
+		viper.ReadInConfig()
+	}
 
 	// Load command specific flags
 	snapshotLen := int32(c.Int("snaplen"))
@@ -124,6 +154,28 @@ func main() {
 			Name:  "source",
 			Usage: "name of source DNS traffic was collected from",
 		},
+		cli.StringFlag{
+			Name:  "output-type",
+			Usage: "where to output parsed traffic [stdout (default), kafka]",
+			Value: "stdout",
+		},
+		cli.StringFlag{
+			Name:  "format",
+			Usage: "output format of parsed traffic [json (default), avro]",
+			Value: "json",
+		},
+		cli.StringFlag{
+			Name:  "config",
+			Usage: "YML config file with config options",
+		},
+		cli.StringFlag{
+			Name:  "kafka-key",
+			Usage: "(kafka) Key to use when sending data to Kafka",
+		},
+		// cli.StringFlag{
+		// 	Name:  "topic",
+		// 	Usage: "(kafka) Topic",
+		// },
 	}
 
 	app.Action = cli.ShowAppHelp
