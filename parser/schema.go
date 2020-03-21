@@ -100,14 +100,14 @@ func FormatOutputExport(schema *DnsSchema) {
 				Value: sarama.ByteEncoder(confluentMessage),
 			}
 		} else if OutputType == "stdout" {
-			fmt.Printf("%s\n", &confluentMessage)
+			fmt.Printf("%s\n", confluentMessage)
 		}
 	} else if Format == "json" {
 		jsonData, err := json.Marshal(&schema)
 		if err != nil {
 			log.Warnf("Error converting to JSON: %v", err)
 		}
-		fmt.Printf("%s\n", &jsonData)
+		fmt.Printf("%s\n", jsonData)
 	}
 }
 

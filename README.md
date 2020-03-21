@@ -60,36 +60,45 @@ application without any arguments.
     $ rickybobby
     NAME:
        rickybobby - Parsing DNS packets when you wanna GO fast!
-    
+
     USAGE:
        rickybobby [global options] command [command options] [arguments...]
-    
+
     VERSION:
        1.0.0
-    
+
     AUTHOR:
        Chaz Lever <chazlever@gatech.edu>
-    
+
     COMMANDS:
-         pcap     read packets from a PCAP file
-         live     read packets from a live interface
-         help, h  Shows a list of commands or help for one command
-    
+       pcap     read packets from a PCAP file
+       live     read packets from a live interface
+       help, h  Shows a list of commands or help for one command
+
     GLOBAL OPTIONS:
-       --tcp            attempt to parse TCP packets
-       --questions      parse questions in addition to responses
-       --questions-ecs  parse questions only if they contain ECS information
-       --profile        toggle performance profiler
-       --sensor value   name of sensor DNS traffic was collected from
-       --source value   name of source DNS traffic was collected from
-       --help, -h       show help
-       --version, -v    print the version
+       --tcp                   attempt to parse TCP packets
+       --questions             parse questions in addition to responses
+       --questions-ecs         parse questions only if they contain ECS information
+       --profile               toggle performance profiler
+       --sensor value          name of sensor DNS traffic was collected from
+       --source value          name of source DNS traffic was collected from
+       --output-type value     where to output parsed traffic [stdout (default), kafka] (default: "stdout")
+       --format value          output format of parsed traffic [json (default), avro] (default: "json")
+       --config value          YML config file with kafka options
+       --kafka-key value       (kafka) Key to use when sending data to Kafka
+       --kafka-topic value     (kafka) Topic
+       --kafka-username value  (kafka) Username for SASL authentication to Kafka brokers
+       --kafka-password value  (kafka) Password for SASL authentication to Kafka brokers
+       --kafka-brokers value   (kafka) List of Kafka brokers
+       --help, -h              show help
+       --version, -v           print the version
+    The application is broken out into two different commands that affect where
+    traffic is parsed from. More details on each of these commands is provided
+    below.
 
-The application is broken out into two different commands that affect where
-traffic is parsed from. More details on each of these commands is provided
-below.
+Kafka options can also be configured using a YML file (see [config.example.yml](config.example.yml)). Note that command-line flags take precedence over file-based configuration options.
 
-### Parsing PCAP File
+### Parsing PCAP Files
 
 To view the help documentation for the `pcap` command, invoke the application
 as follows:

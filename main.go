@@ -43,10 +43,9 @@ func pcapCommand(c *cli.Context) error {
 	loadGlobalOptions(c)
 
 	if parser.Config != "" {
-		viper.SetDefault("KafkaSASL", true)
 		viper.SetDefault("KafkaTopic", "rickybobby")
-		viper.SetDefault("KafkaSASLUsername", "user")
-		viper.SetDefault("KafkaSASLPassword", "thisisabadpassword")
+		viper.SetDefault("KafkaSASLUsername", "")
+		viper.SetDefault("KafkaSASLPassword", "")
 		viper.SetConfigFile(parser.Config)
 		viper.ReadInConfig()
 	}
