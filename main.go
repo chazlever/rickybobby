@@ -44,9 +44,9 @@ func pcapCommand(c *cli.Context) error {
 		viper.SetDefault("KafkaSASLPassword", "thisisabadpassword")
 		viper.SetConfigFile(parser.Config)
 		viper.ReadInConfig()
-		if parser.OutputType == "kafka" {
-			parser.KafkaProducer = producer.NewAccessLogProducer(viper.GetStringSlice("KafkaBrokers"))
-		}
+	}
+	if parser.OutputType == "kafka" {
+		parser.KafkaProducer = producer.NewAccessLogProducer(viper.GetStringSlice("KafkaBrokers"))
 	}
 
 	for _, f := range c.Args() {
