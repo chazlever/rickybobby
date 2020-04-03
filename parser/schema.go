@@ -85,7 +85,6 @@ func FormatOutputExport(schema *DnsSchema) {
 
 		binary, err := codec.BinaryFromNative(nil, DNSToAvroMap(schema))
 		var confluentAvroHeader []byte = make([]byte, 5)
-		// header = append([]byte{0}, schemaIdentifierBuffer...)
 		confluentMessage := append(confluentAvroHeader, binary...)
 		if err != nil {
 			log.Fatalf("Failed to convert Go map to Avro binary data: %v", err)
@@ -112,12 +111,6 @@ func FormatOutputExport(schema *DnsSchema) {
 }
 
 func DNSToAvroMap(schema *DnsSchema) map[string]interface{} {
-	// var ecsClient map[string]interface{}
-	// if schema.EcsClient != nil {
-	// 	ecsClient = map[string]interface{}{"string": *schema.EcsClient}
-	// } else {
-	// 	ecsClient = map[string]interface{}{"null": 1}
-	// }
 	avroMap := map[string]interface{}{
 		"timestamp":         schema.Timestamp,
 		"ip_src":            schema.Source,
