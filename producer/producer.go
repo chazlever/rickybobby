@@ -13,6 +13,7 @@ var (
 	SASLPassword = ""
 	Topic        = ""
 	MessageKey   = ""
+	SchemaVersion = 1
 	Brokers      []string
 	Producer     sarama.AsyncProducer = nil
 )

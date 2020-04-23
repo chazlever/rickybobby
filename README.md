@@ -82,7 +82,7 @@ application without any arguments.
        --profile               toggle performance profiler
        --sensor value          name of sensor DNS traffic was collected from
        --source value          name of source DNS traffic was collected from
-       --output-type value     where to output parsed traffic [stdout (default), kafka] (default: "stdout")
+       --output-type value     where to output parsed traffic [stdout (default), kafka, file] (default: "stdout")
        --format value          output format of parsed traffic [json (default), avro] (default: "json")
        --config value          YML config file with kafka options
        --kafka-key value       (kafka) Key to use when sending data to Kafka
@@ -90,6 +90,7 @@ application without any arguments.
        --kafka-username value  (kafka) Username for SASL authentication to Kafka brokers
        --kafka-password value  (kafka) Password for SASL authentication to Kafka brokers
        --kafka-brokers value   (kafka) List of Kafka brokers
+       --output-file value     File to output data to (use with --output-type flag)
        --help, -h              show help
        --version, -v           print the version
     The application is broken out into two different commands that affect where

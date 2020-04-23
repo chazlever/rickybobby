@@ -4,3 +4,4 @@ KafkaSASLUsername: ""
 KafkaSASLPassword: ""
 KafkaTopic: "rickybobby"
 KafkaMessageKey: ""
+AvroSchemaVersion: 5

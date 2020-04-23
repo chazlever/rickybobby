@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"rickybobby/producer"
 	"strings"
-
+	"os"
 	"github.com/Shopify/sarama"
 	"github.com/miekg/dns"
 	log "github.com/sirupsen/logrus"
@@ -15,6 +15,8 @@ import (
 var (
 	Format     = "json"
 	OutputType = ""
+	OutputFile = ""
+	OutputStream *os.File
 )
 
 // JSON serialization only supports nullifying types that can accept nil.
@@ -76,15 +78,16 @@ func (d DnsSchema) FormatOutput(rr *dns.RR, section int) {
 }
 
 func FormatOutputExport(schema *DnsSchema) {
+	var schemaIdentifier uint32 = 3
+	var schemaIdentifierBuffer []byte = make([]byte, 4)
+	binary.BigEndian.PutUint32(schemaIdentifierBuffer, schemaIdentifier)
+
 	if Format == "avro" {
 		codec, err := producer.NewAvroCodec()
 
-		var schemaIdentifier uint32 = 3
-		var schemaIdentifierBuffer []byte = make([]byte, 4)
-		binary.BigEndian.PutUint32(schemaIdentifierBuffer, schemaIdentifier)
-
 		binary, err := codec.BinaryFromNative(nil, DNSToAvroMap(schema))
-		var confluentAvroHeader []byte = make([]byte, 5)
+		schemaVersion := producer.SchemaVersion
+		var confluentAvroHeader []byte = make([]byte, schemaVersion)
 		confluentMessage := append(confluentAvroHeader, binary...)
 		if err != nil {
 			log.Fatalf("Failed to convert Go map to Avro binary data: %v", err)
@@ -100,13 +103,36 @@ func FormatOutputExport(schema *DnsSchema) {
 			}
 		} else if OutputType == "stdout" {
 			fmt.Printf("%s\n", confluentMessage)
+		} else if OutputType == "file" {
+			_, err := OutputStream.Write(binary)
+			if err != nil {
+				log.Fatalf("Failed to output JSON to a file: %v", err)
+			}
 		}
 	} else if Format == "json" {
 		jsonData, err := json.Marshal(&schema)
 		if err != nil {
 			log.Warnf("Error converting to JSON: %v", err)
 		}
-		fmt.Printf("%s\n", jsonData)
+		if OutputType == "stdout" {
+			fmt.Printf("%s\n", jsonData)
+		} else if OutputType == "kafka" {
+			codec, err := producer.NewAvroCodec()
+			if err != nil {
+				log.Fatalf("Failed to convert Go map to Avro JSON data: %v", err)
+			}
+			avroJSON, err := codec.TextualFromNative(nil, DNSToAvroMap(schema))
+			producer.Producer.Input() <- &sarama.ProducerMessage{
+				Topic: producer.Topic,
+				Key:   sarama.StringEncoder(producer.MessageKey),
+				Value: sarama.ByteEncoder(avroJSON),
+			}
+		} else if OutputType == "file" {
+			_, err := OutputStream.Write(jsonData)
+			if err != nil {
+				log.Fatalf("Failed to output JSON to a file: %v", err)
+			}
+		}
 	}
 }
 

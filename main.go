@@ -20,6 +20,7 @@ func loadGlobalOptions(c *cli.Context) {
 	parser.Sensor = c.GlobalString("sensor")
 	parser.Format = c.GlobalString("format")
 	parser.OutputType = c.GlobalString("output-type")
+	parser.OutputFile = c.GlobalString("output-file")
 	parser.Config = c.GlobalString("config")
 
 	producer.MessageKey = c.GlobalString("kafka-key")
@@ -27,7 +28,6 @@ func loadGlobalOptions(c *cli.Context) {
 	producer.SASLUsername = c.GlobalString("kafka-username")
 	producer.SASLPassword = c.GlobalString("kafka-password")
 	producer.Brokers = c.GlobalStringSlice("kafka-brokers")
-
 }
 
 func pcapCommand(c *cli.Context) error {
@@ -65,7 +65,24 @@ func pcapCommand(c *cli.Context) error {
 		if producer.Topic == "" {
 			producer.Topic = viper.GetString("KafkaTopic")
 		}
+		if producer.SchemaVersion == 1 && viper.IsSet("AvroSchemaVersion") {
+			producer.SchemaVersion = viper.GetInt("AvroSchemaVersion")
+		}
 		producer.Producer = producer.NewProducer()
+	} else if parser.OutputType == "file" {
+		if !c.GlobalIsSet("output-file") {
+			return cli.NewExitError("ERROR: must provide output-file argument when using file output", 1)	
+		}
+		outfile, err := os.Create(parser.OutputFile)
+		if err != nil {
+			log.Fatalf("Failed to open output file: %v", err)
+		}
+		parser.OutputStream = outfile
+		defer func() {
+			if err := outfile.Close(); err != nil {
+				log.Fatalf("Failed to close output file: %v", err)
+			}
+		}()
 	}
 
 	for _, f := range c.Args() {
@@ -174,7 +191,7 @@ func main() {
 		},
 		cli.StringFlag{
 			Name:  "output-type",
-			Usage: "where to output parsed traffic [stdout (default), kafka]",
+			Usage: "where to output parsed traffic [stdout (default), kafka, file]",
 			Value: "stdout",
 		},
 		cli.StringFlag{
@@ -205,6 +222,10 @@ func main() {
 		cli.StringSliceFlag{
 			Name:  "kafka-brokers",
 			Usage: "(kafka) List of Kafka brokers",
+		},
+		cli.StringFlag{
+			Name:  "output-file",
+			Usage: "File to output data to (use with --output-type flag)",
 		},
 	}
 
