@@ -3,13 +3,15 @@ package parser
 import (
 	"crypto/sha256"
 	"fmt"
+	"io"
+	"os"
+	"time"
+
 	"github.com/google/gopacket"
 	"github.com/google/gopacket/layers"
 	"github.com/google/gopacket/pcap"
 	"github.com/miekg/dns"
 	log "github.com/sirupsen/logrus"
-	"os"
-	"time"
 )
 
 const (
@@ -68,12 +70,14 @@ func ParseDevice(device string, snapshotLen int32, promiscuous bool, timeout tim
 
 func ParseDns(handle *pcap.Handle) {
 	var (
-		schema DnsSchema
-		stats  Statistics
-		ip4    *layers.IPv4
-		ip6    *layers.IPv6
-		tcp    *layers.TCP
-		udp    *layers.UDP
+		schema   DnsSchema
+		stats    Statistics
+		ip4      layers.IPv4
+		ip6      layers.IPv6
+		tcp      layers.TCP
+		udp      layers.UDP
+		ethernet layers.Ethernet
+		dot1q    layers.Dot1Q
 	)
 
 	// Set the source and sensor for packet source
@@ -85,27 +89,40 @@ func ParseDns(handle *pcap.Handle) {
 	packetSource.NoCopy = true
 
 PACKETLOOP:
-	for packet := range packetSource.Packets() {
+	for {
 		stats.PacketTotal += 1
+
+		parser := gopacket.NewDecodingLayerParser(layers.LayerTypeEthernet, &ethernet, &ip4, &ip6, &tcp, &udp, &dot1q)
+		parser.IgnoreUnsupported = true
+		decodedLayers := make([]gopacket.LayerType, 0, 10)
+		bytes, info, err := handle.ZeroCopyReadPacketData()
+		if err == io.EOF {
+			break
+		} else if err != nil {
+			log.Warnf("Error1:", err)
+			continue
+		}
+		err = parser.DecodeLayers(bytes, &decodedLayers)
+		if err != nil {
+			log.Warnf("Error2:", err)
+			continue
+		}
 
 		// Let's analyze decoded layers
 		var msg *dns.Msg
-		for _, curLayer := range packet.Layers() {
-			switch curLayer.LayerType() {
+		for _, curLayer := range decodedLayers {
+			switch curLayer {
 			case layers.LayerTypeIPv4:
-				ip4 = curLayer.(*layers.IPv4)
 				schema.SourceAddress = ip4.SrcIP.String()
 				schema.DestinationAddress = ip4.DstIP.String()
 				schema.Ipv4 = true
 				stats.PacketIPv4 += 1
 			case layers.LayerTypeIPv6:
-				ip6 = curLayer.(*layers.IPv6)
 				schema.SourceAddress = ip6.SrcIP.String()
 				schema.DestinationAddress = ip6.DstIP.String()
 				schema.Ipv4 = false
 				stats.PacketIPv6 += 1
 			case layers.LayerTypeTCP:
-				tcp = curLayer.(*layers.TCP)
 				stats.PacketTcp += 1
 
 				if !DoParseTcp {
@@ -125,7 +142,6 @@ PACKETLOOP:
 				schema.Udp = false
 				schema.Sha256 = fmt.Sprintf("%x", sha256.Sum256(tcp.Payload))
 			case layers.LayerTypeUDP:
-				udp = curLayer.(*layers.UDP)
 				stats.PacketUdp += 1
 
 				msg = new(dns.Msg)
@@ -145,11 +161,13 @@ PACKETLOOP:
 
 		// This means we did not attempt to parse a DNS payload
 		if msg == nil {
-			// Let's check if we had any errors decoding any of the packet layers
-			if err := packet.ErrorLayer(); err != nil {
-				log.Debugf("Error decoding some part of the packet:", err)
-				stats.PacketErrors += 1
-			}
+			log.Debugf("Error decoding some part of the packet")
+			// return
+			// // Let's check if we had any errors decoding any of the packet layers
+			// if err := packet.ErrorLayer(); err != nil {
+			// 	log.Debugf("Error decoding some part of the packet:", err)
+			// 	stats.PacketErrors += 1
+			// }
 
 			continue PACKETLOOP
 		}
@@ -160,7 +178,7 @@ PACKETLOOP:
 		}
 
 		// Fill out information from DNS headers
-		schema.Timestamp = packet.Metadata().Timestamp.Unix()
+		schema.Timestamp = info.Timestamp.Unix()
 		schema.Id = msg.Id
 		schema.Rcode = msg.Rcode
 		schema.Truncated = msg.Truncated
