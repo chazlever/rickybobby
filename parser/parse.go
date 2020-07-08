@@ -99,13 +99,15 @@ PACKETLOOP:
 		if err == io.EOF {
 			break
 		} else if err != nil {
-			log.Warnf("Error1:", err)
-			continue
+			log.Errorf("Error reading packet data %v\n", err)
+			stats.PacketErrors += 1
+			continue PACKETLOOP
 		}
 		err = parser.DecodeLayers(bytes, &decodedLayers)
 		if err != nil {
-			log.Warnf("Error2:", err)
-			continue
+			log.Errorf("Error decoding packet data %v\n", err)
+			stats.PacketErrors += 1
+			continue PACKETLOOP
 		}
 
 		// Let's analyze decoded layers
@@ -162,13 +164,7 @@ PACKETLOOP:
 		// This means we did not attempt to parse a DNS payload
 		if msg == nil {
 			log.Debugf("Error decoding some part of the packet")
-			// return
-			// // Let's check if we had any errors decoding any of the packet layers
-			// if err := packet.ErrorLayer(); err != nil {
-			// 	log.Debugf("Error decoding some part of the packet:", err)
-			// 	stats.PacketErrors += 1
-			// }
-
+			stats.PacketErrors += 1
 			continue PACKETLOOP
 		}
 
