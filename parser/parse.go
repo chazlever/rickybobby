@@ -93,22 +93,16 @@ PACKETLOOP:
 		stats.PacketTotal += 1
 
 		parser := gopacket.NewDecodingLayerParser(layers.LayerTypeEthernet, &ethernet, &ip4, &ip6, &tcp, &udp, &dot1q)
-		parser.IgnoreUnsupported = true
 		decodedLayers := make([]gopacket.LayerType, 0, 10)
 		bytes, info, err := handle.ZeroCopyReadPacketData()
 		if err == io.EOF {
 			break
 		} else if err != nil {
-			log.Errorf("Error reading packet data %v\n", err)
+			log.Errorf("Error reading packet data: %v\n", err)
 			stats.PacketErrors += 1
 			continue PACKETLOOP
 		}
 		err = parser.DecodeLayers(bytes, &decodedLayers)
-		if err != nil {
-			log.Errorf("Error decoding packet data %v\n", err)
-			stats.PacketErrors += 1
-			continue PACKETLOOP
-		}
 
 		// Let's analyze decoded layers
 		var msg *dns.Msg
@@ -159,12 +153,15 @@ PACKETLOOP:
 				schema.Udp = true
 				schema.Sha256 = fmt.Sprintf("%x", sha256.Sum256(udp.Payload))
 			}
+
 		}
 
-		// This means we did not attempt to parse a DNS payload
+		// // This means we did not attempt to parse a DNS payload
 		if msg == nil {
-			log.Debugf("Error decoding some part of the packet")
-			stats.PacketErrors += 1
+			if err != nil {
+				log.Errorf("Error decoding packet data: %v\n", err)
+				stats.PacketErrors += 1
+			}
 			continue PACKETLOOP
 		}
 
