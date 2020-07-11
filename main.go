@@ -58,7 +58,7 @@ func main() {
 	app := cli.NewApp()
 	app.Name = "rickybobby"
 	app.Usage = "Parsing DNS packets when you wanna GO fast!"
-	app.Version = "1.0.0"
+	app.Version = "1.0.1"
 	app.Compiled = time.Now()
 
 	app.Authors = []cli.Author{
