@@ -3,13 +3,15 @@ package parser
 import (
 	"crypto/sha256"
 	"fmt"
+	"io"
+	"os"
+	"time"
+
 	"github.com/google/gopacket"
 	"github.com/google/gopacket/layers"
 	"github.com/google/gopacket/pcap"
 	"github.com/miekg/dns"
 	log "github.com/sirupsen/logrus"
-	"os"
-	"time"
 )
 
 const (
@@ -93,10 +95,20 @@ func ParseDns(handle *pcap.Handle) {
 	// Use the handle as a packet source to process all packets
 	packetSource := gopacket.NewPacketSource(handle, handle.LinkType())
 	packetSource.NoCopy = true
+	packetSource.Lazy = true
 
 PACKETLOOP:
-	for packet := range packetSource.Packets() {
+	for {
 		stats.PacketTotal += 1
+
+		packet, err := packetSource.NextPacket()
+		if err == io.EOF {
+			break
+		} else if err != nil {
+			log.Errorf("Error decoding some part of the packet: %v\n", err)
+			stats.PacketErrors += 1
+			continue
+		}
 
 		// Let's analyze decoded layers
 		var msg *dns.Msg
@@ -155,12 +167,7 @@ PACKETLOOP:
 
 		// This means we did not attempt to parse a DNS payload
 		if msg == nil {
-			// Let's check if we had any errors decoding any of the packet layers
-			if err := packet.ErrorLayer(); err != nil {
-				log.Debugf("Error decoding some part of the packet:", err)
-				stats.PacketErrors += 1
-			}
-
+			log.Debugf("No DNS packet found:", err)
 			continue PACKETLOOP
 		}
 
