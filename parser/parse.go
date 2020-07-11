@@ -86,6 +86,7 @@ func ParseDns(handle *pcap.Handle) {
 		ip6    *layers.IPv6
 		tcp    *layers.TCP
 		udp    *layers.UDP
+		msg    *dns.Msg
 	)
 
 	// Set the source and sensor for packet source
@@ -112,7 +113,7 @@ PACKETLOOP:
 		}
 
 		// Parse DNS and transport layer information
-		var msg *dns.Msg
+		msg = nil
 		transportLayer := packet.TransportLayer()
 		switch transportLayer.LayerType() {
 		case layers.LayerTypeTCP:
