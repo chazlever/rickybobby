@@ -111,6 +111,7 @@ PACKETLOOP:
 			continue
 		}
 
+		// Parse DNS and transport layer information
 		var msg *dns.Msg
 		transportLayer := packet.TransportLayer()
 		switch transportLayer.LayerType() {
@@ -152,12 +153,14 @@ PACKETLOOP:
 			schema.Sha256 = fmt.Sprintf("%x", sha256.Sum256(udp.Payload))
 		}
 
-		// This means we did not attempt to parse a DNS payload
+		// This means we did not attempt to parse a DNS payload and
+		// indicates an unexpected transport layer protocol
 		if msg == nil {
 			log.Debugf("No DNS packet found: %v\n", err)
 			continue PACKETLOOP
 		}
 
+		// Parse network layer information
 		networkLayer := packet.NetworkLayer()
 		switch networkLayer.LayerType() {
 		case layers.LayerTypeIPv4:
@@ -218,7 +221,7 @@ PACKETLOOP:
 			schema.Qtype = qr.Qtype
 		}
 
-		// Let's get QUESTION information on if:
+		// Let's get QUESTION information if:
 		//   1. Questions flag is set
 		//   2. QuestionsEcs flag is set and ECS information in question
 		//   3. NXDOMAINs without RRs (i.e., SOA)
