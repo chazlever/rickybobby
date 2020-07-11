@@ -43,6 +43,16 @@ func ParseFile(fname string) {
 	}
 	defer handle.Close()
 
+	// Setup BPF filter on handle
+	bpfFilter := "udp port 53"
+	if DoParseTcp {
+		bpfFilter = "port 53"
+	}
+	err = handle.SetBPFFilter(bpfFilter)
+	if err != nil {
+		log.Warnf("Could not set BPF filter: %v\n", err)
+	}
+
 	ParseDns(handle)
 }
 
