@@ -156,7 +156,7 @@ PACKETLOOP:
 		// This means we did not attempt to parse a DNS payload and
 		// indicates an unexpected transport layer protocol
 		if msg == nil {
-			log.Debugf("No DNS packet found: %v\n", err)
+			log.Debug("Unexpected transport layer protocol")
 			continue PACKETLOOP
 		}
 
