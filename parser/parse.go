@@ -99,12 +99,13 @@ func ParseDns(handle *pcap.Handle) {
 
 PACKETLOOP:
 	for {
-		stats.PacketTotal += 1
-
 		packet, err := packetSource.NextPacket()
 		if err == io.EOF {
 			break
-		} else if err != nil {
+		}
+		stats.PacketTotal += 1
+
+		if err != nil {
 			log.Errorf("Error decoding some part of the packet: %v\n", err)
 			stats.PacketErrors += 1
 			continue
