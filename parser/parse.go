@@ -111,65 +111,67 @@ PACKETLOOP:
 			continue
 		}
 
-		// Let's analyze decoded layers
 		var msg *dns.Msg
-		for _, curLayer := range packet.Layers() {
-			switch curLayer.LayerType() {
-			case layers.LayerTypeIPv4:
-				ip4 = curLayer.(*layers.IPv4)
-				schema.SourceAddress = ip4.SrcIP.String()
-				schema.DestinationAddress = ip4.DstIP.String()
-				schema.Ipv4 = true
-				stats.PacketIPv4 += 1
-			case layers.LayerTypeIPv6:
-				ip6 = curLayer.(*layers.IPv6)
-				schema.SourceAddress = ip6.SrcIP.String()
-				schema.DestinationAddress = ip6.DstIP.String()
-				schema.Ipv4 = false
-				stats.PacketIPv6 += 1
-			case layers.LayerTypeTCP:
-				tcp = curLayer.(*layers.TCP)
-				stats.PacketTcp += 1
+		transportLayer := packet.TransportLayer()
+		switch transportLayer.LayerType() {
+		case layers.LayerTypeTCP:
+			tcp = transportLayer.(*layers.TCP)
+			stats.PacketTcp += 1
 
-				if !DoParseTcp {
-					continue PACKETLOOP
-				}
-
-				msg = new(dns.Msg)
-				if err := msg.Unpack(tcp.Payload); err != nil {
-					log.Errorf("Could not decode DNS: %v\n", err)
-					stats.PacketErrors += 1
-					continue PACKETLOOP
-				}
-				stats.PacketDns += 1
-
-				schema.SourcePort = uint16(tcp.SrcPort)
-				schema.DestinationPort = uint16(tcp.DstPort)
-				schema.Udp = false
-				schema.Sha256 = fmt.Sprintf("%x", sha256.Sum256(tcp.Payload))
-			case layers.LayerTypeUDP:
-				udp = curLayer.(*layers.UDP)
-				stats.PacketUdp += 1
-
-				msg = new(dns.Msg)
-				if err := msg.Unpack(udp.Payload); err != nil {
-					log.Errorf("Could not decode DNS: %v\n", err)
-					stats.PacketErrors += 1
-					continue PACKETLOOP
-				}
-				stats.PacketDns += 1
-
-				schema.SourcePort = uint16(udp.SrcPort)
-				schema.DestinationPort = uint16(udp.DstPort)
-				schema.Udp = true
-				schema.Sha256 = fmt.Sprintf("%x", sha256.Sum256(udp.Payload))
+			if !DoParseTcp {
+				continue PACKETLOOP
 			}
+
+			msg = new(dns.Msg)
+			if err := msg.Unpack(tcp.Payload); err != nil {
+				log.Errorf("Could not decode DNS: %v\n", err)
+				stats.PacketErrors += 1
+				continue PACKETLOOP
+			}
+			stats.PacketDns += 1
+
+			schema.SourcePort = uint16(tcp.SrcPort)
+			schema.DestinationPort = uint16(tcp.DstPort)
+			schema.Udp = false
+			schema.Sha256 = fmt.Sprintf("%x", sha256.Sum256(tcp.Payload))
+		case layers.LayerTypeUDP:
+			udp = transportLayer.(*layers.UDP)
+			stats.PacketUdp += 1
+
+			msg = new(dns.Msg)
+			if err := msg.Unpack(udp.Payload); err != nil {
+				log.Errorf("Could not decode DNS: %v\n", err)
+				stats.PacketErrors += 1
+				continue PACKETLOOP
+			}
+			stats.PacketDns += 1
+
+			schema.SourcePort = uint16(udp.SrcPort)
+			schema.DestinationPort = uint16(udp.DstPort)
+			schema.Udp = true
+			schema.Sha256 = fmt.Sprintf("%x", sha256.Sum256(udp.Payload))
 		}
 
 		// This means we did not attempt to parse a DNS payload
 		if msg == nil {
-			log.Debugf("No DNS packet found:", err)
+			log.Debugf("No DNS packet found: %v\n", err)
 			continue PACKETLOOP
+		}
+
+		networkLayer := packet.NetworkLayer()
+		switch networkLayer.LayerType() {
+		case layers.LayerTypeIPv4:
+			ip4 = networkLayer.(*layers.IPv4)
+			schema.SourceAddress = ip4.SrcIP.String()
+			schema.DestinationAddress = ip4.DstIP.String()
+			schema.Ipv4 = true
+			stats.PacketIPv4 += 1
+		case layers.LayerTypeIPv6:
+			ip6 = networkLayer.(*layers.IPv6)
+			schema.SourceAddress = ip6.SrcIP.String()
+			schema.DestinationAddress = ip6.DstIP.String()
+			schema.Ipv4 = false
+			stats.PacketIPv6 += 1
 		}
 
 		// Ignore questions unless flag set
