@@ -112,9 +112,36 @@ PACKETLOOP:
 			continue
 		}
 
+		// Parse network layer information
+		networkLayer := packet.NetworkLayer()
+		if networkLayer == nil {
+			log.Error("Unknown/missing network layer for packet")
+			stats.PacketErrors += 1
+			continue
+		}
+		switch networkLayer.LayerType() {
+		case layers.LayerTypeIPv4:
+			ip4 = networkLayer.(*layers.IPv4)
+			schema.SourceAddress = ip4.SrcIP.String()
+			schema.DestinationAddress = ip4.DstIP.String()
+			schema.Ipv4 = true
+			stats.PacketIPv4 += 1
+		case layers.LayerTypeIPv6:
+			ip6 = networkLayer.(*layers.IPv6)
+			schema.SourceAddress = ip6.SrcIP.String()
+			schema.DestinationAddress = ip6.DstIP.String()
+			schema.Ipv4 = false
+			stats.PacketIPv6 += 1
+		}
+
 		// Parse DNS and transport layer information
 		msg = nil
 		transportLayer := packet.TransportLayer()
+		if transportLayer == nil {
+			log.Error("Unknown/missing transport layer for packet")
+			stats.PacketErrors += 1
+			continue
+		}
 		switch transportLayer.LayerType() {
 		case layers.LayerTypeTCP:
 			tcp = transportLayer.(*layers.TCP)
@@ -159,23 +186,6 @@ PACKETLOOP:
 		if msg == nil {
 			log.Debug("Unexpected transport layer protocol")
 			continue PACKETLOOP
-		}
-
-		// Parse network layer information
-		networkLayer := packet.NetworkLayer()
-		switch networkLayer.LayerType() {
-		case layers.LayerTypeIPv4:
-			ip4 = networkLayer.(*layers.IPv4)
-			schema.SourceAddress = ip4.SrcIP.String()
-			schema.DestinationAddress = ip4.DstIP.String()
-			schema.Ipv4 = true
-			stats.PacketIPv4 += 1
-		case layers.LayerTypeIPv6:
-			ip6 = networkLayer.(*layers.IPv6)
-			schema.SourceAddress = ip6.SrcIP.String()
-			schema.DestinationAddress = ip6.DstIP.String()
-			schema.Ipv4 = false
-			stats.PacketIPv6 += 1
 		}
 
 		// Ignore questions unless flag set
