@@ -46,9 +46,9 @@ func ParseFile(fname string) {
 	defer handle.Close()
 
 	// Setup BPF filter on handle
-	bpfFilter := "udp port 53"
+	bpfFilter := "udp port 53 or (vlan and udp port 53)"
 	if DoParseTcp {
-		bpfFilter = "port 53"
+		bpfFilter = "port 53 or (vlan and port 53)"
 	}
 	err = handle.SetBPFFilter(bpfFilter)
 	if err != nil {
@@ -66,9 +66,9 @@ func ParseDevice(device string, snapshotLen int32, promiscuous bool, timeout tim
 	defer handle.Close()
 
 	// Setup BPF filter on handle
-	bpfFilter := "udp port 53"
+	bpfFilter := "udp port 53 or (vlan and udp port 53)"
 	if DoParseTcp {
-		bpfFilter = "port 53"
+		bpfFilter = "port 53 or (vlan and port 53)"
 	}
 	err = handle.SetBPFFilter(bpfFilter)
 	if err != nil {
