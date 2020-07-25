@@ -159,8 +159,8 @@ PACKETLOOP:
 			}
 			stats.PacketDns += 1
 
-			schema.SourcePort = uint16(tcp.SrcPort)
-			schema.DestinationPort = uint16(tcp.DstPort)
+			schema.SourcePort = int(tcp.SrcPort)
+			schema.DestinationPort = int(tcp.DstPort)
 			schema.Udp = false
 			schema.Sha256 = fmt.Sprintf("%x", sha256.Sum256(tcp.Payload))
 		case layers.LayerTypeUDP:
@@ -175,8 +175,8 @@ PACKETLOOP:
 			}
 			stats.PacketDns += 1
 
-			schema.SourcePort = uint16(udp.SrcPort)
-			schema.DestinationPort = uint16(udp.DstPort)
+			schema.SourcePort = int(udp.SrcPort)
+			schema.DestinationPort = int(udp.DstPort)
 			schema.Udp = true
 			schema.Sha256 = fmt.Sprintf("%x", sha256.Sum256(udp.Payload))
 		}
@@ -195,7 +195,7 @@ PACKETLOOP:
 
 		// Fill out information from DNS headers
 		schema.Timestamp = packet.Metadata().Timestamp.Unix()
-		schema.Id = msg.Id
+		schema.Id = int(msg.Id)
 		schema.Rcode = msg.Rcode
 		schema.Truncated = msg.Truncated
 		schema.Response = msg.Response
@@ -229,7 +229,7 @@ PACKETLOOP:
 		// TODO: Throw error if there's more than one question
 		for _, qr := range msg.Question {
 			schema.Qname = qr.Name
-			schema.Qtype = qr.Qtype
+			schema.Qtype = int(qr.Qtype)
 		}
 
 		// Let's get QUESTION information if:
@@ -239,22 +239,22 @@ PACKETLOOP:
 		if (DoParseQuestions && !schema.Response) ||
 			(DoParseQuestionsEcs && schema.EcsClient != nil && !schema.Response) ||
 			(schema.Rcode == 3 && len(msg.Ns) < 1) {
-			schema.ToJson(nil, -1)
+			schema.Serialize(nil, -1)
 		}
 
 		// Let's get ANSWERS
 		for _, rr := range msg.Answer {
-			schema.ToJson(&rr, DnsAnswer)
+			schema.Serialize(&rr, DnsAnswer)
 		}
 
 		// Let's get AUTHORITATIVE information
 		for _, rr := range msg.Ns {
-			schema.ToJson(&rr, DnsAuthority)
+			schema.Serialize(&rr, DnsAuthority)
 		}
 
 		// Let's get ADDITIONAL information
 		for _, rr := range msg.Extra {
-			schema.ToJson(&rr, DnsAdditional)
+			schema.Serialize(&rr, DnsAdditional)
 		}
 	}
 

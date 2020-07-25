@@ -1,12 +1,15 @@
 package main
 
 import (
-	"github.com/pkg/profile"
-	log "github.com/sirupsen/logrus"
-	"gopkg.in/urfave/cli.v1"
 	"os"
 	"rickybobby/parser"
 	"time"
+
+	"github.com/hamba/avro"
+	"github.com/hamba/avro/ocf"
+	"github.com/pkg/profile"
+	log "github.com/sirupsen/logrus"
+	"gopkg.in/urfave/cli.v1"
 )
 
 func loadGlobalOptions(c *cli.Context) {
@@ -28,6 +31,25 @@ func pcapCommand(c *cli.Context) error {
 
 	loadGlobalOptions(c)
 
+	// TODO: Implement for liveCommand too
+
+	if c.GlobalString("format") == "avro" {
+		codec, err := parser.NewAvroCodec()
+		var avroWriter = avro.NewWriter(os.Stdout, 1000)
+		var magicBytes = [4]byte{'O', 'b', 'j', 1}
+		var HeaderSchema = ocf.HeaderSchema
+		header := ocf.Header{
+			Magic: magicBytes,
+			Meta:  nil,
+		}
+		avroWriter.WriteVal(HeaderSchema, header)
+
+		if err != nil {
+			log.Fatal("Failed to initialize avro codec.")
+		}
+		parser.AvroWriter = *avroWriter
+		parser.AvroCodec = codec
+	}
 	for _, f := range c.Args() {
 		parser.ParseFile(f)
 	}
@@ -123,6 +145,11 @@ func main() {
 		cli.StringFlag{
 			Name:  "source",
 			Usage: "name of source DNS traffic was collected from",
+		},
+		cli.StringFlag{
+			Name:  "format",
+			Usage: "output format of parsed traffic [json (default), avro]",
+			Value: "json",
 		},
 	}
 
