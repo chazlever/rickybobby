@@ -82,6 +82,7 @@ application without any arguments.
        --profile        toggle performance profiler
        --sensor value   name of sensor DNS traffic was collected from
        --source value   name of source DNS traffic was collected from
+       --format value   output format of parsed traffic [json (default), avro] (default: "json")
        --help, -h       show help
        --version, -v    print the version
 
