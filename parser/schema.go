@@ -5,14 +5,13 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/hamba/avro"
+	"github.com/hamba/avro/ocf"
 	"github.com/miekg/dns"
 	log "github.com/sirupsen/logrus"
 )
 
 var (
-	AvroCodec  avro.Schema
-	AvroWriter avro.Writer
+	AvroEncoder *ocf.Encoder
 )
 
 // JSON serialization only supports nullifying types that can accept nil.
@@ -33,7 +32,7 @@ type DnsSchema struct {
 	RecursionDesired   bool    `json:"recursion_desired" avro:"recursion_desired"`
 	Answer             bool    `json:"answer avro:"-""`
 	Authority          bool    `json:"authority" avro:"-"`
-	Additional         bool    `json:"additional avro:"-""`
+	Additional         bool    `json:"additional" avro:"-""`
 	Qname              string  `json:"qname" avro:"qname"`
 	Qtype              int     `json:"qtype" avro:"qtype"`
 	Ttl                *uint32 `json:"ttl" avro:"-"`
@@ -82,7 +81,7 @@ func (d DnsSchema) Serialize(rr *dns.RR, section int) {
 			return
 		}
 	}
-	if AvroCodec != nil {
+	if AvroEncoder != nil {
 		d.ToAvro()
 	} else {
 		d.ToJson()
@@ -132,16 +131,13 @@ func (d DnsSchema) ToAvro() {
 	} else {
 		d.IPVersionAvro = 6
 	}
-	bytes, err := avro.Marshal(AvroCodec, d)
-
+	err := AvroEncoder.Encode(d)
 	if err != nil {
-		log.Fatal(err)
+		log.Fatal("Error while encoding avro %d", err)
 	}
-	AvroWriter.Write(bytes)
-	AvroWriter.Flush()
 }
 
-func NewAvroCodec() (avro.Schema, error) {
+func GetAvroSchema() string {
 	schema := `{
 		"type": "record",
 		"name": "dns_record",
@@ -227,7 +223,7 @@ func NewAvroCodec() (avro.Schema, error) {
 			"default": null
 		  } ]
 		}`
-	return avro.Parse(schema)
+	return schema
 }
 
 type stringUnion struct {
