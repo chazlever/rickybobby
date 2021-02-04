@@ -35,17 +35,17 @@ supports Modules (Go 1.11+). See the Go Wiki page on
 ### Binaries
 
 For installation instruction from binaries, please visit the [Releases
-Page](https://github.gatech.edu/clever3/rickybobby/releases).
+Page](https://github.com/chazlever/rickybobby/releases).
 
 ### Via Go
 
 You can use the Go tool to download and install the binary for you.
 
-    $ go get github.gatech.edu/clever3/rickybobby
+    $ go get github.com/chazlever/rickybobby
   
 Or you can manually clone the repository and build the binaries yourself.
 
-    $ git clone https://github.gatech.edu/clever3/rickybobby.git
+    $ git clone https://github.com/chazlever/rickybobby.git
     $ cd rickybobby
     $ go build && go install
 
@@ -68,7 +68,7 @@ application without any arguments.
        1.0.0
     
     AUTHOR:
-       Chaz Lever <chazlever@gatech.edu>
+       Chaz Lever <chazlever@users.noreply.github.com>
     
     COMMANDS:
          pcap     read packets from a PCAP file

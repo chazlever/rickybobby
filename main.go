@@ -64,7 +64,7 @@ func main() {
 	app.Authors = []cli.Author{
 		{
 			Name:  "Chaz Lever",
-			Email: "chazlever@gatech.edu",
+			Email: "chazlever@users.noreply.github.com",
 		},
 	}
 
