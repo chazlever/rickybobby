@@ -1,12 +1,13 @@
 package main
 
 import (
-	"github.com/pkg/profile"
 	log "github.com/sirupsen/logrus"
 	"gopkg.in/urfave/cli.v1"
 	"os"
-	"rickybobby/parser"
 	"time"
+
+	"github.com/chazlever/rickybobby/parser"
+	"github.com/pkg/profile"
 )
 
 func loadGlobalOptions(c *cli.Context) {
