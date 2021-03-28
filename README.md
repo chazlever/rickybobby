@@ -41,7 +41,7 @@ Page](https://github.com/chazlever/rickybobby/releases).
 
 You can use the Go tool to download and install the binary for you.
 
-    $ sudo apt-get install build-essential libpcap-dev  # libpcap0.8-dev (for ARM)
+    $ sudo apt-get install build-essential libpcap-dev
     $ go get github.com/chazlever/rickybobby
   
 Or you can manually clone the repository and build the binaries yourself.
