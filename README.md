@@ -26,11 +26,15 @@ To run a pre-built binary, the only dependency is `libpcap`.  If you're running
 on a Debian based distribution, you can install this with the following
 command:
 
-    sudo apt-get install libpcap
+    $ sudo apt-get install libpcap-dev
     
 If you're planning on building from source, you will need a version of Go that
 supports Modules (Go 1.11+). See the Go Wiki page on
-[Modules](https://github.com/golang/go/wiki/Modules) for more information.
+[Modules](https://github.com/golang/go/wiki/Modules) for more information. On a
+recent Debian distribution, you can install both Go and Git with the following
+command:
+
+    $ sudo apt-get install golang git
 
 ### Binaries
 
@@ -41,7 +45,6 @@ Page](https://github.com/chazlever/rickybobby/releases).
 
 You can use the Go tool to download and install the binary for you.
 
-    $ sudo apt-get install build-essential libpcap-dev
     $ go get github.com/chazlever/rickybobby
   
 Or you can manually clone the repository and build the binaries yourself.
