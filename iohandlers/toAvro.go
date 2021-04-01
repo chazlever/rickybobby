@@ -136,7 +136,7 @@ func init() {
 	}`
 
 	var err error
-	avroEncoder, err = ocf.NewEncoder(avroSchema, os.Stdout)
+	avroEncoder, err = ocf.NewEncoder(avroSchema, os.Stdout, ocf.WithCodec(ocf.Snappy))
 	if err != nil {
 		log.Fatalf("Error creating Avro Encoder: %v", err)
 	}
