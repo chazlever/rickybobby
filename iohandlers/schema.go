@@ -1,11 +1,14 @@
-package parser
+package iohandlers
 
 import (
-	"encoding/json"
-	"fmt"
 	"github.com/miekg/dns"
-	log "github.com/sirupsen/logrus"
 	"strings"
+)
+
+const (
+	DnsAnswer     = iota
+	DnsAuthority  = iota
+	DnsAdditional = iota
 )
 
 // JSON serialization only supports nullifying types that can accept nil.
@@ -40,7 +43,9 @@ type DnsSchema struct {
 	Sensor             string  `json:"sensor,omitempty"`
 }
 
-func (d DnsSchema) ToJson(rr *dns.RR, section int) {
+var Marshalers = make(map[string]func(*DnsSchema))
+
+func (d DnsSchema) Marshal(rr *dns.RR, section int, format string) {
 	if rr != nil {
 		// This works because RR.Header().String() prefixes the RDATA
 		// in the RR.String() representation.
@@ -63,9 +68,5 @@ func (d DnsSchema) ToJson(rr *dns.RR, section int) {
 		}
 	}
 
-	jsonData, err := json.Marshal(&d)
-	if err != nil {
-		log.Warnf("Error converting to JSON: %v", err)
-	}
-	fmt.Printf("%s\n", jsonData)
+	Marshalers[format](&d)
 }

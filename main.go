@@ -1,6 +1,8 @@
 package main
 
 import (
+	"fmt"
+	"github.com/chazlever/rickybobby/iohandlers"
 	log "github.com/sirupsen/logrus"
 	"gopkg.in/urfave/cli.v1"
 	"os"
@@ -10,12 +12,22 @@ import (
 	"github.com/pkg/profile"
 )
 
+func getOutputFormats() []string {
+	marshallers := make([]string, 0, len(iohandlers.Marshalers))
+	for m := range iohandlers.Marshalers {
+		marshallers = append(marshallers, m)
+	}
+
+	return marshallers
+}
+
 func loadGlobalOptions(c *cli.Context) {
 	parser.DoParseTcp = c.GlobalBool("tcp")
 	parser.DoParseQuestions = c.GlobalBool("questions")
 	parser.DoParseQuestionsEcs = c.GlobalBool("questions-ecs")
 	parser.Source = c.GlobalString("source")
 	parser.Sensor = c.GlobalString("sensor")
+	parser.OutputFormat = c.GlobalString("format")
 }
 
 func pcapCommand(c *cli.Context) error {
@@ -124,6 +136,11 @@ func main() {
 		cli.StringFlag{
 			Name:  "source",
 			Usage: "name of source DNS traffic was collected from",
+		},
+		cli.StringFlag{
+			Name:  "format",
+			Usage: fmt.Sprintf("specify the output formatter to use %+q", getOutputFormats()),
+			Value: "json",
 		},
 	}
 

@@ -7,17 +7,12 @@ import (
 	"os"
 	"time"
 
+	"github.com/chazlever/rickybobby/iohandlers"
 	"github.com/google/gopacket"
 	"github.com/google/gopacket/layers"
 	"github.com/google/gopacket/pcap"
 	"github.com/miekg/dns"
 	log "github.com/sirupsen/logrus"
-)
-
-const (
-	DnsAnswer     = iota
-	DnsAuthority  = iota
-	DnsAdditional = iota
 )
 
 var (
@@ -26,6 +21,7 @@ var (
 	DoParseQuestionsEcs = true
 	Source              = ""
 	Sensor              = ""
+	OutputFormat        = ""
 )
 
 func ParseFile(fname string) {
@@ -80,7 +76,7 @@ func ParseDevice(device string, snapshotLen int32, promiscuous bool, timeout tim
 
 func ParseDns(handle *pcap.Handle) {
 	var (
-		schema DnsSchema
+		schema iohandlers.DnsSchema
 		stats  Statistics
 		ip4    *layers.IPv4
 		ip6    *layers.IPv6
@@ -239,22 +235,22 @@ PACKETLOOP:
 		if (DoParseQuestions && !schema.Response) ||
 			(DoParseQuestionsEcs && schema.EcsClient != nil && !schema.Response) ||
 			(schema.Rcode == 3 && len(msg.Ns) < 1) {
-			schema.ToJson(nil, -1)
+			schema.Marshal(nil, -1, OutputFormat)
 		}
 
 		// Let's get ANSWERS
 		for _, rr := range msg.Answer {
-			schema.ToJson(&rr, DnsAnswer)
+			schema.Marshal(&rr, iohandlers.DnsAnswer, OutputFormat)
 		}
 
 		// Let's get AUTHORITATIVE information
 		for _, rr := range msg.Ns {
-			schema.ToJson(&rr, DnsAuthority)
+			schema.Marshal(&rr, iohandlers.DnsAuthority, OutputFormat)
 		}
 
 		// Let's get ADDITIONAL information
 		for _, rr := range msg.Extra {
-			schema.ToJson(&rr, DnsAdditional)
+			schema.Marshal(&rr, iohandlers.DnsAdditional, OutputFormat)
 		}
 	}
 
