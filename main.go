@@ -2,14 +2,14 @@ package main
 
 import (
 	"fmt"
-	"github.com/chazlever/rickybobby/iohandlers"
-	log "github.com/sirupsen/logrus"
-	"gopkg.in/urfave/cli.v1"
 	"os"
 	"time"
 
+	"github.com/chazlever/rickybobby/iohandlers"
 	"github.com/chazlever/rickybobby/parser"
 	"github.com/pkg/profile"
+	log "github.com/sirupsen/logrus"
+	"gopkg.in/urfave/cli.v1"
 )
 
 func getOutputFormats() []string {
@@ -77,7 +77,6 @@ func liveCommand(c *cli.Context) error {
 	if err := loadGlobalOptions(c); err != nil {
 		return err
 	}
-
 
 	// Load command specific flags
 	snapshotLen := int32(c.Int("snaplen"))
