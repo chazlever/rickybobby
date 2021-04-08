@@ -8,8 +8,53 @@ import (
 )
 
 func init() {
+	Initializers["avro"] = toAvroInitializer
 	Marshalers["avro"] = toAvro
+	Closers["avro"] = toAvroCloser
+}
 
+var (
+	avroEncoder *ocf.Encoder
+	avroData    avroDnsSchema
+	avroSchema  string
+	ttl         int
+	rtype       int
+	ecsSource   int
+	ecsScope    int
+)
+
+// Avro doesn't support unsigned integers so we create a new type for serialization.
+type avroDnsSchema struct {
+	Timestamp          int64   `avro:"timestamp"`
+	Sha256             string  `avro:"sha256"`
+	Udp                bool    `avro:"udp"`
+	Ipv4               bool    `avro:"ipv4"`
+	SourceAddress      string  `avro:"src_address"`
+	SourcePort         int     `avro:"src_port"`
+	DestinationAddress string  `avro:"dst_address"`
+	DestinationPort    int     `avro:"dst_port"`
+	Id                 int     `avro:"id"`
+	Rcode              int     `avro:"rcode"`
+	Truncated          bool    `avro:"truncated"`
+	Response           bool    `avro:"response"`
+	RecursionDesired   bool    `avro:"recursion_desired"`
+	Answer             bool    `avro:"answer"`
+	Authority          bool    `avro:"authority"`
+	Additional         bool    `avro:"additional"`
+	Qname              string  `avro:"qname"`
+	Qtype              int     `avro:"qtype"`
+	Ttl                *int    `avro:"ttl"`
+	Rname              *string `avro:"rname"`
+	Rtype              *int    `avro:"rtype"`
+	Rdata              *string `avro:"rdata"`
+	EcsClient          *string `avro:"ecs_client"`
+	EcsSource          *int    `avro:"ecs_source"`
+	EcsScope           *int    `avro:"ecs_scope"`
+	Source             *string `avro:"source"`
+	Sensor             *string `avro:"sensor"`
+}
+
+func toAvroInitializer() {
 	avroSchema = `{
 	"type": "record",
 	"name": "DnsSchema",
@@ -142,47 +187,6 @@ func init() {
 	}
 }
 
-var (
-	avroEncoder *ocf.Encoder
-	avroData    avroDnsSchema
-	avroSchema  string
-	ttl         int
-	rtype       int
-	ecsSource   int
-	ecsScope    int
-)
-
-// Avro doesn't support unsigned integers so we create a new type for serialization.
-type avroDnsSchema struct {
-	Timestamp          int64   `avro:"timestamp"`
-	Sha256             string  `avro:"sha256"`
-	Udp                bool    `avro:"udp"`
-	Ipv4               bool    `avro:"ipv4"`
-	SourceAddress      string  `avro:"src_address"`
-	SourcePort         int     `avro:"src_port"`
-	DestinationAddress string  `avro:"dst_address"`
-	DestinationPort    int     `avro:"dst_port"`
-	Id                 int     `avro:"id"`
-	Rcode              int     `avro:"rcode"`
-	Truncated          bool    `avro:"truncated"`
-	Response           bool    `avro:"response"`
-	RecursionDesired   bool    `avro:"recursion_desired"`
-	Answer             bool    `avro:"answer"`
-	Authority          bool    `avro:"authority"`
-	Additional         bool    `avro:"additional"`
-	Qname              string  `avro:"qname"`
-	Qtype              int     `avro:"qtype"`
-	Ttl                *int    `avro:"ttl"`
-	Rname              *string `avro:"rname"`
-	Rtype              *int    `avro:"rtype"`
-	Rdata              *string `avro:"rdata"`
-	EcsClient          *string `avro:"ecs_client"`
-	EcsSource          *int    `avro:"ecs_source"`
-	EcsScope           *int    `avro:"ecs_scope"`
-	Source             *string `avro:"source"`
-	Sensor             *string `avro:"sensor"`
-}
-
 func toAvro(d *DnsSchema) {
 	avroData.Timestamp = d.Timestamp
 	avroData.Sha256 = d.Sha256
@@ -242,4 +246,9 @@ func toAvro(d *DnsSchema) {
 	if err != nil {
 		log.Warnf("Error encoding Avro: %v", err)
 	}
+}
+
+func toAvroCloser() {
+	avroEncoder.Flush()
+	avroEncoder.Close()
 }

@@ -1,8 +1,9 @@
 package iohandlers
 
 import (
-	"github.com/miekg/dns"
 	"strings"
+
+	"github.com/miekg/dns"
 )
 
 const (
@@ -43,7 +44,23 @@ type DnsSchema struct {
 	Sensor             string  `json:"sensor,omitempty"`
 }
 
-var Marshalers = make(map[string]func(*DnsSchema))
+var (
+	Initializers = make(map[string]func())
+	Marshalers   = make(map[string]func(*DnsSchema))
+	Closers      = make(map[string]func())
+)
+
+func Initialize(format string) {
+	if init, ok := Initializers[format]; ok {
+		init()
+	}
+}
+
+func Close(format string) {
+	if closer, ok := Closers[format]; ok {
+		closer()
+	}
+}
 
 func (d DnsSchema) Marshal(rr *dns.RR, section int, format string) {
 	if rr != nil {

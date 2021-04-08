@@ -94,6 +94,9 @@ func ParseDns(handle *pcap.Handle) {
 	packetSource.NoCopy = true
 	packetSource.Lazy = true
 
+	// Initialize IO handler for output format
+	iohandlers.Initialize(OutputFormat)
+
 PACKETLOOP:
 	for {
 		packet, err := packetSource.NextPacket()
@@ -253,6 +256,9 @@ PACKETLOOP:
 			schema.Marshal(&rr, iohandlers.DnsAdditional, OutputFormat)
 		}
 	}
+
+	// Cleanup IO handler for output format
+	iohandlers.Close(OutputFormat)
 
 	log.Infof("Number of TOTAL packets: %v", stats.PacketTotal)
 	log.Infof("Number of IPv4 packets: %v", stats.PacketIPv4)
