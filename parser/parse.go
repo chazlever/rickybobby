@@ -231,13 +231,13 @@ PACKETLOOP:
 			schema.Qtype = qr.Qtype
 		}
 
-		// Let's get QUESTION information if:
-		//   1. Questions flag is set
-		//   2. QuestionsEcs flag is set and ECS information in question
-		//   3. NXDOMAINs without RRs (i.e., SOA)
+		// Let's output records without RRs records if:
+		//   1. Questions flag is set and record is question
+		//   2. QuestionsEcs flag is set and question record contains ECS information
+		//   4. Any response without any RRs (e.g., NXDOMAIN without SOA, REFUSED, etc.)
 		if (DoParseQuestions && !schema.Response) ||
 			(DoParseQuestionsEcs && schema.EcsClient != nil && !schema.Response) ||
-			(schema.Rcode == 3 && len(msg.Ns) < 1) {
+			(schema.Response && (len(msg.Answer) + len(msg.Ns) + len(msg.Extra)) < 1) {
 			schema.Marshal(nil, -1, OutputFormat)
 		}
 
