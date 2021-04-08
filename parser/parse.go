@@ -231,13 +231,21 @@ PACKETLOOP:
 			schema.Qtype = qr.Qtype
 		}
 
+		// Get a count of RRs in DNS response
+		rrCount := 0
+		for _, rr := range append(append(msg.Answer, msg.Ns...), msg.Extra...) {
+			if rr.Header().Rrtype != 41 {
+				rrCount++
+			}
+		}
+
 		// Let's output records without RRs records if:
 		//   1. Questions flag is set and record is question
 		//   2. QuestionsEcs flag is set and question record contains ECS information
 		//   4. Any response without any RRs (e.g., NXDOMAIN without SOA, REFUSED, etc.)
 		if (DoParseQuestions && !schema.Response) ||
 			(DoParseQuestionsEcs && schema.EcsClient != nil && !schema.Response) ||
-			(schema.Response && (len(msg.Answer) + len(msg.Ns) + len(msg.Extra)) < 1) {
+			(schema.Response && rrCount < 1) {
 			schema.Marshal(nil, -1, OutputFormat)
 		}
 
