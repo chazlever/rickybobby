@@ -13,21 +13,37 @@ import (
 )
 
 func getOutputFormats() []string {
-	marshallers := make([]string, 0, len(iohandlers.Marshalers))
+	marshalers := make([]string, 0, len(iohandlers.Marshalers))
 	for m := range iohandlers.Marshalers {
-		marshallers = append(marshallers, m)
+		marshalers = append(marshalers, m)
 	}
 
-	return marshallers
+	return marshalers
 }
 
-func loadGlobalOptions(c *cli.Context) {
+func loadGlobalOptions(c *cli.Context) error {
 	parser.DoParseTcp = c.GlobalBool("tcp")
 	parser.DoParseQuestions = c.GlobalBool("questions")
 	parser.DoParseQuestionsEcs = c.GlobalBool("questions-ecs")
 	parser.Source = c.GlobalString("source")
 	parser.Sensor = c.GlobalString("sensor")
-	parser.OutputFormat = c.GlobalString("format")
+	outputFormat := c.GlobalString("format")
+	parser.OutputFormat = outputFormat
+
+	outputFormats := make(map[string]bool)
+	for _, format := range getOutputFormats() {
+		outputFormats[format] = true
+	}
+
+	if _, ok := outputFormats[outputFormat]; !ok {
+		return cli.NewExitError(
+			fmt.Sprintf("ERROR: Invalid output format: \"%s\" not in %v",
+				outputFormat,
+				getOutputFormats()),
+			1)
+	}
+
+	return nil
 }
 
 func pcapCommand(c *cli.Context) error {
@@ -39,7 +55,9 @@ func pcapCommand(c *cli.Context) error {
 		defer profile.Start().Stop()
 	}
 
-	loadGlobalOptions(c)
+	if err := loadGlobalOptions(c); err != nil {
+		return err
+	}
 
 	for _, f := range c.Args() {
 		parser.ParseFile(f)
@@ -56,7 +74,10 @@ func liveCommand(c *cli.Context) error {
 		defer profile.Start().Stop()
 	}
 
-	loadGlobalOptions(c)
+	if err := loadGlobalOptions(c); err != nil {
+		return err
+	}
+
 
 	// Load command specific flags
 	snapshotLen := int32(c.Int("snaplen"))
