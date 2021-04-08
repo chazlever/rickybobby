@@ -177,7 +177,13 @@ PACKETLOOP:
 			schema.SourcePort = uint16(udp.SrcPort)
 			schema.DestinationPort = uint16(udp.DstPort)
 			schema.Udp = true
-			schema.Sha256 = fmt.Sprintf("%x", sha256.Sum256(udp.Payload))
+
+			// Hash and salt packet for grouping related records
+			tsSalt, err := packet.Metadata().Timestamp.MarshalBinary()
+			if err != nil {
+				log.Errorf("Could not marshal timestamp: #{err}\n")
+			}
+			schema.Sha256 = fmt.Sprintf("%x", sha256.Sum256(append(tsSalt, packet.Data()...)))
 		}
 
 		// This means we did not attempt to parse a DNS payload and
