@@ -69,7 +69,7 @@ application without any arguments.
        rickybobby [global options] command [command options] [arguments...]
     
     VERSION:
-       1.0.0
+       1.0.3
     
     AUTHOR:
        Chaz Lever <chazlever@users.noreply.github.com>
@@ -86,6 +86,7 @@ application without any arguments.
        --profile        toggle performance profiler
        --sensor value   name of sensor DNS traffic was collected from
        --source value   name of source DNS traffic was collected from
+       --format value   specify the output formatter to use ["avro" "json"] (default: "json")
        --help, -h       show help
        --version, -v    print the version
 

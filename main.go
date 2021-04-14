@@ -1,21 +1,49 @@
 package main
 
 import (
-	log "github.com/sirupsen/logrus"
-	"gopkg.in/urfave/cli.v1"
+	"fmt"
 	"os"
 	"time"
 
+	"github.com/chazlever/rickybobby/iohandlers"
 	"github.com/chazlever/rickybobby/parser"
 	"github.com/pkg/profile"
+	log "github.com/sirupsen/logrus"
+	"gopkg.in/urfave/cli.v1"
 )
 
-func loadGlobalOptions(c *cli.Context) {
+func getOutputFormats() []string {
+	marshalers := make([]string, 0, len(iohandlers.Marshalers))
+	for m := range iohandlers.Marshalers {
+		marshalers = append(marshalers, m)
+	}
+
+	return marshalers
+}
+
+func loadGlobalOptions(c *cli.Context) error {
 	parser.DoParseTcp = c.GlobalBool("tcp")
 	parser.DoParseQuestions = c.GlobalBool("questions")
 	parser.DoParseQuestionsEcs = c.GlobalBool("questions-ecs")
 	parser.Source = c.GlobalString("source")
 	parser.Sensor = c.GlobalString("sensor")
+	outputFormat := c.GlobalString("format")
+	parser.OutputFormat = outputFormat
+
+	outputFormats := make(map[string]bool)
+	for _, format := range getOutputFormats() {
+		outputFormats[format] = true
+	}
+
+	if _, ok := outputFormats[outputFormat]; !ok {
+		return cli.NewExitError(
+			fmt.Sprintf("ERROR: Invalid output format: \"%s\" not in %v",
+				outputFormat,
+				getOutputFormats()),
+			1)
+	}
+
+	return nil
 }
 
 func pcapCommand(c *cli.Context) error {
@@ -27,7 +55,9 @@ func pcapCommand(c *cli.Context) error {
 		defer profile.Start().Stop()
 	}
 
-	loadGlobalOptions(c)
+	if err := loadGlobalOptions(c); err != nil {
+		return err
+	}
 
 	for _, f := range c.Args() {
 		parser.ParseFile(f)
@@ -44,7 +74,9 @@ func liveCommand(c *cli.Context) error {
 		defer profile.Start().Stop()
 	}
 
-	loadGlobalOptions(c)
+	if err := loadGlobalOptions(c); err != nil {
+		return err
+	}
 
 	// Load command specific flags
 	snapshotLen := int32(c.Int("snaplen"))
@@ -124,6 +156,11 @@ func main() {
 		cli.StringFlag{
 			Name:  "source",
 			Usage: "name of source DNS traffic was collected from",
+		},
+		cli.StringFlag{
+			Name:  "format",
+			Usage: fmt.Sprintf("specify the output formatter to use %+q", getOutputFormats()),
+			Value: "json",
 		},
 	}
 
