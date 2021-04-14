@@ -69,7 +69,7 @@ application without any arguments.
        rickybobby [global options] command [command options] [arguments...]
     
     VERSION:
-       1.0.3
+       1.0.4
     
     AUTHOR:
        Chaz Lever <chazlever@users.noreply.github.com>
