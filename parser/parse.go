@@ -177,7 +177,13 @@ PACKETLOOP:
 			schema.SourcePort = uint16(udp.SrcPort)
 			schema.DestinationPort = uint16(udp.DstPort)
 			schema.Udp = true
-			schema.Sha256 = fmt.Sprintf("%x", sha256.Sum256(udp.Payload))
+
+			// Hash and salt packet for grouping related records
+			tsSalt, err := packet.Metadata().Timestamp.MarshalBinary()
+			if err != nil {
+				log.Errorf("Could not marshal timestamp: #{err}\n")
+			}
+			schema.Sha256 = fmt.Sprintf("%x", sha256.Sum256(append(tsSalt, packet.Data()...)))
 		}
 
 		// This means we did not attempt to parse a DNS payload and
@@ -231,13 +237,21 @@ PACKETLOOP:
 			schema.Qtype = qr.Qtype
 		}
 
-		// Let's get QUESTION information if:
-		//   1. Questions flag is set
-		//   2. QuestionsEcs flag is set and ECS information in question
-		//   3. NXDOMAINs without RRs (i.e., SOA)
+		// Get a count of RRs in DNS response
+		rrCount := 0
+		for _, rr := range append(append(msg.Answer, msg.Ns...), msg.Extra...) {
+			if rr.Header().Rrtype != 41 {
+				rrCount++
+			}
+		}
+
+		// Let's output records without RRs records if:
+		//   1. Questions flag is set and record is question
+		//   2. QuestionsEcs flag is set and question record contains ECS information
+		//   4. Any response without any RRs (e.g., NXDOMAIN without SOA, REFUSED, etc.)
 		if (DoParseQuestions && !schema.Response) ||
 			(DoParseQuestionsEcs && schema.EcsClient != nil && !schema.Response) ||
-			(schema.Rcode == 3 && len(msg.Ns) < 1) {
+			(schema.Response && rrCount < 1) {
 			schema.Marshal(nil, -1, OutputFormat)
 		}
 
