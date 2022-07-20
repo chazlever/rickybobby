@@ -7,6 +7,6 @@ require (
 	github.com/hamba/avro v1.5.6
 	github.com/miekg/dns v1.1.43
 	github.com/pkg/profile v1.6.0
-	github.com/sirupsen/logrus v1.8.1
+	github.com/sirupsen/logrus v1.9.0
 	gopkg.in/urfave/cli.v1 v1.20.0
 )
