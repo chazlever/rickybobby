@@ -3,7 +3,7 @@ package iohandlers
 import (
 	"os"
 
-	"github.com/hamba/avro/ocf"
+	"github.com/hamba/avro/v2/ocf"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -249,6 +249,12 @@ func toAvro(d *DnsSchema) {
 }
 
 func toAvroCloser() {
-	avroEncoder.Flush()
-	avroEncoder.Close()
+	err := avroEncoder.Flush()
+	if err != nil {
+		log.Warnf("%v", err)
+	}
+	err = avroEncoder.Close()
+	if err != nil {
+		log.Warnf("%v", err)
+	}
 }
