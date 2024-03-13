@@ -12,8 +12,9 @@ const (
 	DnsAdditional = iota
 )
 
-// JSON serialization only supports nullifying types that can accept nil.
-// The ECS fields are pointers because they're nullable.
+// A DnsSchema encapsulates all the fields parsed from a DNS packet.
+// Since JSON serialization only supports nullifying types that can accept nil,
+// the ECS fields are pointers because they're nullable.
 type DnsSchema struct {
 	Timestamp          int64   `json:"timestamp"`
 	Sha256             string  `json:"sha256"`
