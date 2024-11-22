@@ -22,7 +22,7 @@ func getOutputFormats() []string {
 }
 
 func loadGlobalOptions(c *cli.Context) error {
-	parser.DoParseTcp = c.GlobalBool("tcp")
+	parser.BpfFilter = c.GlobalString("bpf-filter")
 	parser.DoParseQuestions = c.GlobalBool("questions")
 	parser.DoParseQuestionsEcs = c.GlobalBool("questions-ecs")
 	parser.Source = c.GlobalString("source")
@@ -133,9 +133,9 @@ func main() {
 	}
 
 	app.Flags = []cli.Flag{
-		cli.BoolFlag{
-			Name:  "tcp",
-			Usage: "attempt to parse TCP packets",
+		cli.StringFlag{
+			Name:  "bpf-filter",
+			Usage: "specify a BPF filter to use for filtering packets",
 		},
 		cli.BoolFlag{
 			Name:  "questions",

@@ -16,7 +16,7 @@ import (
 )
 
 var (
-	DoParseTcp          = true
+	BpfFilter           = ""
 	DoParseQuestions    = false
 	DoParseQuestionsEcs = true
 	Source              = ""
@@ -42,15 +42,12 @@ func ParseFile(fname string) {
 	defer handle.Close()
 
 	// Setup BPF filter on handle
-	bpfFilter := "udp port 53 or (vlan and udp port 53)"
-	if DoParseTcp {
-		bpfFilter = "port 53 or (vlan and port 53)"
+	if BpfFilter != "" {
+		err = handle.SetBPFFilter(BpfFilter)
+		if err != nil {
+			log.Warnf("Could not set BPF filter: %v\n", err)
+		}
 	}
-	err = handle.SetBPFFilter(bpfFilter)
-	if err != nil {
-		log.Warnf("Could not set BPF filter: %v\n", err)
-	}
-
 	ParseDns(handle)
 }
 
@@ -62,15 +59,12 @@ func ParseDevice(device string, snapshotLen int32, promiscuous bool, timeout tim
 	defer handle.Close()
 
 	// Setup BPF filter on handle
-	bpfFilter := "udp port 53 or (vlan and udp port 53)"
-	if DoParseTcp {
-		bpfFilter = "port 53 or (vlan and port 53)"
+	if BpfFilter != "" {
+		err = handle.SetBPFFilter(BpfFilter)
+		if err != nil {
+			log.Warnf("Could not set BPF filter: %v\n", err)
+		}
 	}
-	err = handle.SetBPFFilter(bpfFilter)
-	if err != nil {
-		log.Warnf("Could not set BPF filter: %v\n", err)
-	}
-
 	ParseDns(handle)
 }
 
@@ -80,7 +74,7 @@ func ParseDns(handle *pcap.Handle) {
 		stats  Statistics
 		ip4    *layers.IPv4
 		ip6    *layers.IPv6
-		tcp    *layers.TCP
+		_      *layers.TCP
 		udp    *layers.UDP
 		msg    *dns.Msg
 	)
@@ -143,25 +137,23 @@ PACKETLOOP:
 		}
 		switch transportLayer.LayerType() {
 		case layers.LayerTypeTCP:
-			tcp = transportLayer.(*layers.TCP)
 			stats.PacketTcp += 1
-
-			if !DoParseTcp {
-				continue PACKETLOOP
-			}
-
-			msg = new(dns.Msg)
-			if err := msg.Unpack(tcp.Payload); err != nil {
-				log.Errorf("Could not decode DNS: %v\n", err)
-				stats.PacketErrors += 1
-				continue PACKETLOOP
-			}
-			stats.PacketDns += 1
-
-			schema.SourcePort = uint16(tcp.SrcPort)
-			schema.DestinationPort = uint16(tcp.DstPort)
-			schema.Udp = false
-			schema.Sha256 = fmt.Sprintf("%x", sha256.Sum256(tcp.Payload))
+			continue PACKETLOOP
+			// TODO: Implement TCP reassembly for DNS parsing
+			//tcp = transportLayer.(*layers.TCP)
+			//
+			//msg = new(dns.Msg)
+			//if err := msg.Unpack(tcp.Payload); err != nil {
+			//	log.Errorf("Could not decode DNS: %v\n", err)
+			//	stats.PacketErrors += 1
+			//	continue PACKETLOOP
+			//}
+			//stats.PacketDns += 1
+			//
+			//schema.SourcePort = uint16(tcp.SrcPort)
+			//schema.DestinationPort = uint16(tcp.DstPort)
+			//schema.Udp = false
+			//schema.Sha256 = fmt.Sprintf("%x", sha256.Sum256(tcp.Payload))
 		case layers.LayerTypeUDP:
 			udp = transportLayer.(*layers.UDP)
 			stats.PacketUdp += 1
