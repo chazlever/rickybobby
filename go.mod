@@ -5,7 +5,7 @@ go 1.23.0
 toolchain go1.23.2
 
 require (
-	github.com/gopacket/gopacket v1.3.0
+	github.com/gopacket/gopacket v1.3.1
 	github.com/hamba/avro/v2 v2.27.0
 	github.com/miekg/dns v1.1.62
 	github.com/pkg/profile v1.7.0
