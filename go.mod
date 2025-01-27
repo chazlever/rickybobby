@@ -7,7 +7,7 @@ toolchain go1.23.2
 require (
 	github.com/gopacket/gopacket v1.3.1
 	github.com/hamba/avro/v2 v2.27.0
-	github.com/miekg/dns v1.1.62
+	github.com/miekg/dns v1.1.63
 	github.com/pkg/profile v1.7.0
 	github.com/sirupsen/logrus v1.9.3
 	gopkg.in/urfave/cli.v1 v1.20.0
@@ -23,8 +23,8 @@ require (
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/modern-go/reflect2 v1.0.2 // indirect
 	golang.org/x/mod v0.21.0 // indirect
-	golang.org/x/net v0.30.0 // indirect
+	golang.org/x/net v0.31.0 // indirect
 	golang.org/x/sync v0.8.0 // indirect
-	golang.org/x/sys v0.26.0 // indirect
+	golang.org/x/sys v0.27.0 // indirect
 	golang.org/x/tools v0.26.0 // indirect
 )
