@@ -3,16 +3,15 @@ package parser
 import (
 	"crypto/sha256"
 	"fmt"
-	"io"
-	"os"
-	"time"
-
 	"github.com/chazlever/rickybobby/iohandlers"
 	"github.com/gopacket/gopacket"
 	"github.com/gopacket/gopacket/layers"
 	"github.com/gopacket/gopacket/pcap"
 	"github.com/miekg/dns"
-	log "github.com/sirupsen/logrus"
+	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
+	"io"
+	"os"
 )
 
 var (
@@ -37,7 +36,7 @@ func ParseFile(fname string) {
 	}
 
 	if err != nil {
-		log.Fatal(err)
+		log.Fatal().Err(err)
 	}
 	defer handle.Close()
 
@@ -45,16 +44,16 @@ func ParseFile(fname string) {
 	if BpfFilter != "" {
 		err = handle.SetBPFFilter(BpfFilter)
 		if err != nil {
-			log.Warnf("Could not set BPF filter: %v\n", err)
+			log.Warn().Msgf("Could not set BPF filter: %v", err)
 		}
 	}
 	ParseDns(handle)
 }
 
-func ParseDevice(device string, snapshotLen int32, promiscuous bool, timeout time.Duration) {
-	handle, err := pcap.OpenLive(device, snapshotLen, promiscuous, timeout)
+func ParseDevice(device string, snapshotLen int32, promiscuous bool) {
+	handle, err := pcap.OpenLive(device, snapshotLen, promiscuous, pcap.BlockForever)
 	if err != nil {
-		log.Fatal(err)
+		log.Fatal().Err(err)
 	}
 	defer handle.Close()
 
@@ -62,7 +61,7 @@ func ParseDevice(device string, snapshotLen int32, promiscuous bool, timeout tim
 	if BpfFilter != "" {
 		err = handle.SetBPFFilter(BpfFilter)
 		if err != nil {
-			log.Warnf("Could not set BPF filter: %v\n", err)
+			log.Warn().Msgf("Could not set BPF filter: %v", err)
 		}
 	}
 	ParseDns(handle)
@@ -100,7 +99,7 @@ PACKETLOOP:
 		stats.PacketTotal += 1
 
 		if err != nil {
-			log.Errorf("Error decoding some part of the packet: %v\n", err)
+			log.Error().Msgf("Error decoding some part of the packet: %v", err)
 			stats.PacketErrors += 1
 			continue
 		}
@@ -108,7 +107,7 @@ PACKETLOOP:
 		// Parse network layer information
 		networkLayer := packet.NetworkLayer()
 		if networkLayer == nil {
-			log.Error("Unknown/missing network layer for packet")
+			log.Error().Msg("Unknown/missing network layer for packet")
 			stats.PacketErrors += 1
 			continue
 		}
@@ -131,7 +130,7 @@ PACKETLOOP:
 		msg = nil
 		transportLayer := packet.TransportLayer()
 		if transportLayer == nil {
-			log.Error("Unknown/missing transport layer for packet")
+			log.Error().Msg("Unknown/missing transport layer for packet")
 			stats.PacketErrors += 1
 			continue
 		}
@@ -160,7 +159,7 @@ PACKETLOOP:
 
 			msg = new(dns.Msg)
 			if err := msg.Unpack(udp.Payload); err != nil {
-				log.Errorf("Could not decode DNS: %v\n", err)
+				log.Error().Msgf("Could not decode DNS: %v", err)
 				stats.PacketErrors += 1
 				continue PACKETLOOP
 			}
@@ -173,7 +172,7 @@ PACKETLOOP:
 			// Hash and salt packet for grouping related records
 			tsSalt, err := packet.Metadata().Timestamp.MarshalBinary()
 			if err != nil {
-				log.Errorf("Could not marshal timestamp: #{err}\n")
+				log.Error().Msgf("Could not marshal timestamp: %v", err)
 			}
 			schema.Sha256 = fmt.Sprintf("%x", sha256.Sum256(append(tsSalt, packet.Data()...)))
 		}
@@ -181,7 +180,7 @@ PACKETLOOP:
 		// This means we did not attempt to parse a DNS payload and
 		// indicates an unexpected transport layer protocol
 		if msg == nil {
-			log.Debug("Unexpected transport layer protocol")
+			log.Debug().Msg("Unexpected transport layer protocol")
 			continue PACKETLOOP
 		}
 
@@ -266,11 +265,6 @@ PACKETLOOP:
 	// Cleanup IO handler for output format
 	iohandlers.Close(OutputFormat)
 
-	log.Infof("Number of TOTAL packets: %v", stats.PacketTotal)
-	log.Infof("Number of IPv4 packets: %v", stats.PacketIPv4)
-	log.Infof("Number of IPv6 packets: %v", stats.PacketIPv6)
-	log.Infof("Number of UDP packets: %v", stats.PacketUdp)
-	log.Infof("Number of TCP packets: %v", stats.PacketTcp)
-	log.Infof("Number of DNS packets: %v", stats.PacketDns)
-	log.Infof("Number of FAILED packets: %v", stats.PacketErrors)
+	//log.Info().Object("packetCounts", stats).Msg("Summary of packet counts")
+	log.WithLevel(zerolog.NoLevel).Str("level", "stats").Object("packetCounts", stats).Msg("Summary of packet counts")
 }

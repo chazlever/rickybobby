@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 
-	log "github.com/sirupsen/logrus"
+	"github.com/rs/zerolog/log"
 )
 
 func init() {
@@ -14,7 +14,7 @@ func init() {
 func toJson(d *DnsSchema) {
 	jsonData, err := json.Marshal(d)
 	if err != nil {
-		log.Warnf("Error converting to JSON: %v", err)
+		log.Warn().Msgf("Error converting to JSON: %v", err)
 	}
 	fmt.Printf("%s\n", jsonData)
 }

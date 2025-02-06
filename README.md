@@ -27,7 +27,7 @@ on a Debian based distribution, you can install this with the following
 command:
 
     $ sudo apt-get install libpcap-dev
-    
+
 If you're planning on building from source, you will need a version of Go that
 supports Modules (Go 1.11+). See the Go Wiki page on
 [Modules](https://github.com/golang/go/wiki/Modules) for more information. On a
@@ -46,7 +46,7 @@ Page](https://github.com/chazlever/rickybobby/releases).
 You can use the Go tool to download and install the binary for you.
 
     $ go get github.com/chazlever/rickybobby
-  
+
 Or you can manually clone the repository and build the binaries yourself.
 
     $ git clone https://github.com/chazlever/rickybobby.git
@@ -62,33 +62,35 @@ To view the help documentation for the application, you can simply call the
 application without any arguments.
 
     $ rickybobby
-    NAME:
-       rickybobby - Parsing DNS packets when you wanna GO fast!
-    
-    USAGE:
-       rickybobby [global options] command [command options] [arguments...]
-    
-    VERSION:
-       1.0.5
-    
-    AUTHOR:
-       Chaz Lever <chazlever@users.noreply.github.com>
-    
-    COMMANDS:
-         pcap     read packets from a PCAP file
-         live     read packets from a live interface
-         help, h  Shows a list of commands or help for one command
-    
-    GLOBAL OPTIONS:
-       --tcp            attempt to parse TCP packets
-       --questions      parse questions in addition to responses
-       --questions-ecs  parse questions only if they contain ECS information
-       --profile        toggle performance profiler
-       --sensor value   name of sensor DNS traffic was collected from
-       --source value   name of source DNS traffic was collected from
-       --format value   specify the output formatter to use ["avro" "json"] (default: "json")
-       --help, -h       show help
-       --version, -v    print the version
+	NAME:
+	   rickybobby - Parsing DNS packets when you wanna GO fast!
+	
+	USAGE:
+	   rickybobby [global options] command [command options] [arguments...]
+	
+	VERSION:
+	   1.0.6
+	
+	AUTHOR:
+	   Chaz Lever <chazlever@users.noreply.github.com>
+	
+	COMMANDS:
+	     pcap     read packets from a PCAP file
+	     live     read packets from a live interface
+	     help, h  Shows a list of commands or help for one command
+	
+	GLOBAL OPTIONS:
+	   --bpf-filter value  specify a BPF filter to use for filtering packets
+	   --questions         parse questions in addition to responses
+	   --questions-ecs     parse questions only if they contain ECS information
+	   --profile           toggle performance profiler
+	   --sensor value      name of sensor DNS traffic was collected from
+	   --source value      name of source DNS traffic was collected from
+	   --format value      specify the output formatter to use ["json" "avro"] (default: "json")
+	   --log-level value   specify the log level to use ["debug" "info" "warn" "error"]
+	   --help, -h          show help
+	   --version, -v       print the version
+
 
 The application is broken out into two different commands that affect where
 traffic is parsed from. More details on each of these commands is provided
@@ -100,11 +102,11 @@ To view the help documentation for the `pcap` command, invoke the application
 as follows:
 
     $ rickybobby pcap -h
-    NAME:
-       rickybobby pcap - read packets from a PCAP file
-    
-    USAGE:
-       rickybobby pcap [file...]
+	NAME:
+	   rickybobby pcap - read packets from a PCAP file
+	
+	USAGE:
+	   rickybobby pcap [file...]
 
 As shown above, the `pcap` command takes one more more arguments where each
 argument is simply a path to an uncompressed PCAP file. It is also possible to
@@ -120,7 +122,7 @@ STDIN:
 To view the help documentation for the `live` command, invoke the applicatijon
 as follows:
 
-    $ rickybobby live -h
+	$ rickybobby live -h
     NAME:
        rickybobby live - read packets from a live interface
     
@@ -130,8 +132,7 @@ as follows:
     OPTIONS:
        --snaplen value  set snapshot length for PCAP collection (default: 4096)
        --promiscuous    set promiscuous mode for traffic collection
-       --timeout value  set timeout value for traffic collection (default: 30)
-       
+
 As shown above, the `live` command accepts the name of an interface to parse
 from as its sole argument. There are also a number of command specific flags
 that can be set.

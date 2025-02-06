@@ -2,15 +2,30 @@ package main
 
 import (
 	"fmt"
+	"github.com/rs/zerolog"
 	"os"
 	"time"
 
 	"github.com/chazlever/rickybobby/iohandlers"
 	"github.com/chazlever/rickybobby/parser"
 	"github.com/pkg/profile"
-	log "github.com/sirupsen/logrus"
+	"github.com/rs/zerolog/log"
 	"gopkg.in/urfave/cli.v1"
 )
+
+var logLevels = []string{"debug", "info", "warn", "error"}
+
+func isValidLogLevel(level string) bool {
+	if level == "" {
+		return true
+	}
+	for _, l := range logLevels {
+		if l == level {
+			return true
+		}
+	}
+	return false
+}
 
 func getOutputFormats() []string {
 	marshalers := make([]string, 0, len(iohandlers.Marshalers))
@@ -29,10 +44,32 @@ func loadGlobalOptions(c *cli.Context) error {
 	parser.Sensor = c.GlobalString("sensor")
 	outputFormat := c.GlobalString("format")
 	parser.OutputFormat = outputFormat
+	logLevel := c.GlobalString("log-level")
 
 	outputFormats := make(map[string]bool)
 	for _, format := range getOutputFormats() {
 		outputFormats[format] = true
+	}
+
+	if isValidLogLevel(logLevel) {
+		switch logLevel {
+		case "debug":
+			zerolog.SetGlobalLevel(zerolog.DebugLevel)
+		case "warn":
+			zerolog.SetGlobalLevel(zerolog.WarnLevel)
+		case "error":
+			zerolog.SetGlobalLevel(zerolog.ErrorLevel)
+		case "info":
+			zerolog.SetGlobalLevel(zerolog.InfoLevel)
+		default:
+			zerolog.SetGlobalLevel(zerolog.NoLevel)
+		}
+	} else {
+		return cli.NewExitError(
+			fmt.Sprintf("ERROR: Invalid log level: \"%s\" not in %v",
+				logLevel,
+				logLevels),
+			1)
 	}
 
 	if _, ok := outputFormats[outputFormat]; !ok {
@@ -81,9 +118,8 @@ func liveCommand(c *cli.Context) error {
 	// Load command specific flags
 	snapshotLen := int32(c.Int("snaplen"))
 	promiscuous := c.Bool("promiscuous")
-	timeout := time.Duration(c.Int("timeout")) * time.Second
 
-	parser.ParseDevice(c.Args().First(), snapshotLen, promiscuous, timeout)
+	parser.ParseDevice(c.Args().First(), snapshotLen, promiscuous)
 	return nil
 }
 
@@ -91,7 +127,7 @@ func main() {
 	app := cli.NewApp()
 	app.Name = "rickybobby"
 	app.Usage = "Parsing DNS packets when you wanna GO fast!"
-	app.Version = "1.0.5"
+	app.Version = "1.0.6"
 	app.Compiled = time.Now()
 
 	app.Authors = []cli.Author{
@@ -122,11 +158,6 @@ func main() {
 				cli.BoolFlag{
 					Name:  "promiscuous",
 					Usage: "set promiscuous mode for traffic collection",
-				},
-				cli.IntFlag{
-					Name:  "timeout",
-					Usage: "set timeout value for traffic collection",
-					Value: 30,
 				},
 			},
 		},
@@ -162,11 +193,15 @@ func main() {
 			Usage: fmt.Sprintf("specify the output formatter to use %+q", getOutputFormats()),
 			Value: "json",
 		},
+		cli.StringFlag{
+			Name:  "log-level",
+			Usage: fmt.Sprintf("specify the log level to use %+q", logLevels),
+		},
 	}
 
 	app.Action = cli.ShowAppHelp
 
 	if err := app.Run(os.Args); err != nil {
-		log.Fatal(err)
+		log.Fatal().Err(err)
 	}
 }
