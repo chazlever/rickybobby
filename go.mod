@@ -10,7 +10,6 @@ require (
 	github.com/miekg/dns v1.1.63
 	github.com/pkg/profile v1.7.0
 	github.com/rs/zerolog v1.33.0
-	github.com/sirupsen/logrus v1.9.3
 	gopkg.in/urfave/cli.v1 v1.20.0
 )
 
