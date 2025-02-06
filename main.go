@@ -81,9 +81,8 @@ func liveCommand(c *cli.Context) error {
 	// Load command specific flags
 	snapshotLen := int32(c.Int("snaplen"))
 	promiscuous := c.Bool("promiscuous")
-	timeout := time.Duration(c.Int("timeout")) * time.Second
 
-	parser.ParseDevice(c.Args().First(), snapshotLen, promiscuous, timeout)
+	parser.ParseDevice(c.Args().First(), snapshotLen, promiscuous)
 	return nil
 }
 
@@ -122,11 +121,6 @@ func main() {
 				cli.BoolFlag{
 					Name:  "promiscuous",
 					Usage: "set promiscuous mode for traffic collection",
-				},
-				cli.IntFlag{
-					Name:  "timeout",
-					Usage: "set timeout value for traffic collection",
-					Value: 30,
 				},
 			},
 		},

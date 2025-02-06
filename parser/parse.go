@@ -3,16 +3,14 @@ package parser
 import (
 	"crypto/sha256"
 	"fmt"
-	"io"
-	"os"
-	"time"
-
 	"github.com/chazlever/rickybobby/iohandlers"
 	"github.com/gopacket/gopacket"
 	"github.com/gopacket/gopacket/layers"
 	"github.com/gopacket/gopacket/pcap"
 	"github.com/miekg/dns"
 	"github.com/rs/zerolog/log"
+	"io"
+	"os"
 )
 
 var (
@@ -51,7 +49,7 @@ func ParseFile(fname string) {
 	ParseDns(handle)
 }
 
-func ParseDevice(device string, snapshotLen int32, promiscuous bool, timeout time.Duration) {
+func ParseDevice(device string, snapshotLen int32, promiscuous bool) {
 	handle, err := pcap.OpenLive(device, snapshotLen, promiscuous, pcap.BlockForever)
 	if err != nil {
 		log.Fatal().Err(err)
