@@ -3,8 +3,9 @@ package parser
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/rs/zerolog"
 
-	log "github.com/sirupsen/logrus"
+	"github.com/rs/zerolog/log"
 )
 
 type Statistics struct {
@@ -20,7 +21,17 @@ type Statistics struct {
 func (s Statistics) ToJson() {
 	jsonData, err := json.Marshal(&s)
 	if err != nil {
-		log.Warnf("Error converting to JSON: %v", err)
+		log.Warn().Msgf("Error converting to JSON: %v", err)
 	}
 	fmt.Printf("%s\n", jsonData)
+}
+
+func (s Statistics) MarshalZerologObject(e *zerolog.Event) {
+	e.Uint("Total", s.PacketTotal).
+		Uint("IPv4", s.PacketIPv4).
+		Uint("IPv6", s.PacketIPv6).
+		Uint("TCP", s.PacketTcp).
+		Uint("UDP", s.PacketUdp).
+		Uint("DNS", s.PacketDns).
+		Uint("Failed", s.PacketErrors)
 }
