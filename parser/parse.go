@@ -8,6 +8,7 @@ import (
 	"github.com/gopacket/gopacket/layers"
 	"github.com/gopacket/gopacket/pcap"
 	"github.com/miekg/dns"
+	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"io"
 	"os"
@@ -264,5 +265,6 @@ PACKETLOOP:
 	// Cleanup IO handler for output format
 	iohandlers.Close(OutputFormat)
 
-	log.Info().Object("packetCounts", stats).Msg("Summary of packet counts")
+	//log.Info().Object("packetCounts", stats).Msg("Summary of packet counts")
+	log.WithLevel(zerolog.NoLevel).Str("level", "stats").Object("packetCounts", stats).Msg("Summary of packet counts")
 }

@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"github.com/rs/zerolog"
 	"os"
 	"time"
 
@@ -11,6 +12,20 @@ import (
 	"github.com/rs/zerolog/log"
 	"gopkg.in/urfave/cli.v1"
 )
+
+var logLevels = []string{"debug", "info", "warn", "error"}
+
+func isValidLogLevel(level string) bool {
+	if level == "" {
+		return true
+	}
+	for _, l := range logLevels {
+		if l == level {
+			return true
+		}
+	}
+	return false
+}
 
 func getOutputFormats() []string {
 	marshalers := make([]string, 0, len(iohandlers.Marshalers))
@@ -29,10 +44,32 @@ func loadGlobalOptions(c *cli.Context) error {
 	parser.Sensor = c.GlobalString("sensor")
 	outputFormat := c.GlobalString("format")
 	parser.OutputFormat = outputFormat
+	logLevel := c.GlobalString("log-level")
 
 	outputFormats := make(map[string]bool)
 	for _, format := range getOutputFormats() {
 		outputFormats[format] = true
+	}
+
+	if isValidLogLevel(logLevel) {
+		switch logLevel {
+		case "debug":
+			zerolog.SetGlobalLevel(zerolog.DebugLevel)
+		case "warn":
+			zerolog.SetGlobalLevel(zerolog.WarnLevel)
+		case "error":
+			zerolog.SetGlobalLevel(zerolog.ErrorLevel)
+		case "info":
+			zerolog.SetGlobalLevel(zerolog.InfoLevel)
+		default:
+			zerolog.SetGlobalLevel(zerolog.NoLevel)
+		}
+	} else {
+		return cli.NewExitError(
+			fmt.Sprintf("ERROR: Invalid log level: \"%s\" not in %v",
+				logLevel,
+				logLevels),
+			1)
 	}
 
 	if _, ok := outputFormats[outputFormat]; !ok {
@@ -155,6 +192,10 @@ func main() {
 			Name:  "format",
 			Usage: fmt.Sprintf("specify the output formatter to use %+q", getOutputFormats()),
 			Value: "json",
+		},
+		cli.StringFlag{
+			Name:  "log-level",
+			Usage: fmt.Sprintf("specify the log level to use %+q", logLevels),
 		},
 	}
 
