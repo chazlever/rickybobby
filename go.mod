@@ -9,7 +9,7 @@ require (
 	github.com/hamba/avro/v2 v2.27.0
 	github.com/miekg/dns v1.1.66
 	github.com/pkg/profile v1.7.0
-	github.com/rs/zerolog v1.33.0
+	github.com/rs/zerolog v1.34.0
 	gopkg.in/urfave/cli.v1 v1.20.0
 )
 
