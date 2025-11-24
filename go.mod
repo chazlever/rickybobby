@@ -1,11 +1,9 @@
 module github.com/chazlever/rickybobby
 
-go 1.23.0
-
-toolchain go1.23.2
+go 1.24.0
 
 require (
-	github.com/gopacket/gopacket v1.3.1
+	github.com/gopacket/gopacket v1.5.0
 	github.com/hamba/avro/v2 v2.27.0
 	github.com/miekg/dns v1.1.66
 	github.com/pkg/profile v1.7.0
